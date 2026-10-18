@@ -1,10 +1,11 @@
 /*
-  SMART BIN  -  ESP32 + HC-SR04 ultrasonic + neon light
-  ------------------------------------------------------
+  SMART BIN  -  ESP32 + HC-SR04 ultrasonic + neon light + 16x2 I2C LCD
+  ---------------------------------------------------------------------
   - Measures the distance from the lid to the trash.
   - Detects when something is thrown in (distance suddenly gets shorter).
-  - Detects when the bin is FULL (>= 90%) and turns the neon ON.
+  - Detects when the bin is FULL (>= 90%): neon ON, LCD warning, phone notification.
   - Detects when the bin is emptied and turns the neon OFF.
+  - Shows fill level, a progress bar and counters on the LCD.
   - Saves every event to flash (LittleFS) as CSV, so data survives power loss.
   - Runs a small web server that the dashboard (index.html) reads from.
 
@@ -15,16 +16,24 @@
     HC-SR04 ECHO -> GPIO 18  *through a voltage divider* (1k from ECHO to GPIO18,
                                                           2k from GPIO18 to GND)
     Neon driver  -> GPIO 26  (relay module / MOSFET, NOT the neon directly)
+    LCD I2C  VCC -> 5V (VIN)
+    LCD I2C  GND -> GND
+    LCD I2C  SDA -> GPIO 21
+    LCD I2C  SCL -> GPIO 22
+
+  No extra libraries needed: the LCD driver is built into this file
+  (it auto-detects the I2C address 0x27 or 0x3F).
 
   Arduino IDE: board "ESP32 Dev Module", install the "esp32" board package.
-  Libraries used are all built in (WiFi, WebServer, LittleFS, Preferences, ESPmDNS).
 */
 
 #include <WiFi.h>
 #include <WebServer.h>
+#include <HTTPClient.h>
 #include <ESPmDNS.h>
 #include <LittleFS.h>
 #include <Preferences.h>
+#include <Wire.h>
 #include <time.h>
 
 // ===================== SETTINGS - EDIT THESE =====================
@@ -33,9 +42,20 @@ const char* WIFI_PASS = "YOUR_WIFI_PASSWORD";
 
 const long  GMT_OFFSET_SEC = 16200;   // your timezone in seconds (UTC+4:30 = 16200, UTC+4 = 14400)
 
+// Where is this bin? (shown on the dashboard). Leave 0,0 to set it from the website instead.
+const char* BIN_NAME = "Smart Bin";   // no quotes inside the name
+const float BIN_LAT  = 0.0;
+const float BIN_LNG  = 0.0;
+
+// Phone notification when the bin gets full (free, no account): install the "ntfy" app,
+// subscribe to the SAME topic name. Pick something unique and hard to guess. "" = disabled.
+const char* NTFY_TOPIC = "";          // e.g. "smartbin-mostafa-4821"
+
 #define TRIG_PIN 5
 #define ECHO_PIN 18
 #define NEON_PIN 26
+#define LCD_SDA  21
+#define LCD_SCL  22
 const bool NEON_ACTIVE_HIGH = true;   // set false if your relay turns ON with LOW
 
 const float BIN_DEPTH_CM   = 40.0;    // distance from sensor to the EMPTY bin bottom
@@ -58,7 +78,80 @@ int   fullVotes  = 0;
 uint32_t itemsToday = 0, itemsTotal = 0;
 int   savedDay = -1;
 uint32_t lastItemT = 0;
-unsigned long lastSample = 0, lastWifiTry = 0;
+unsigned long lastSample = 0, lastWifiTry = 0, lastLcd = 0;
+
+// ---------- tiny I2C LCD driver (HD44780 + PCF8574 backpack, 16x2) ----------
+uint8_t lcdAddr = 0;
+bool lcdOk = false;
+const uint8_t LCD_BL = 0x08, LCD_EN = 0x04, LCD_RS = 0x01;
+char lcdCache[2][17] = {"", ""};
+char lcdMsg0[17] = "", lcdMsg1[17] = "";
+unsigned long lcdMsgUntil = 0;
+
+void lcdExp(uint8_t d) { Wire.beginTransmission(lcdAddr); Wire.write((uint8_t)(d | LCD_BL)); Wire.endTransmission(); }
+void lcdPulse(uint8_t d) { lcdExp(d | LCD_EN); delayMicroseconds(2); lcdExp(d & ~LCD_EN); delayMicroseconds(60); }
+void lcdNibble(uint8_t d) { lcdExp(d); lcdPulse(d); }
+void lcdSend(uint8_t v, uint8_t rs) { lcdNibble((v & 0xF0) | rs); lcdNibble(((v << 4) & 0xF0) | rs); }
+void lcdCmd(uint8_t v) { lcdSend(v, 0); }
+bool i2cPresent(uint8_t a) { Wire.beginTransmission(a); return Wire.endTransmission() == 0; }
+
+void lcdInit() {
+  Wire.begin(LCD_SDA, LCD_SCL);
+  if (i2cPresent(0x27)) lcdAddr = 0x27;
+  else if (i2cPresent(0x3F)) lcdAddr = 0x3F;
+  else { Serial.println("LCD not found (checked 0x27 and 0x3F) - check SDA/SCL wiring."); return; }
+  delay(50);
+  lcdNibble(0x30); delay(5);
+  lcdNibble(0x30); delay(5);
+  lcdNibble(0x30); delayMicroseconds(200);
+  lcdNibble(0x20); delayMicroseconds(200);   // switch to 4-bit mode
+  lcdCmd(0x28);                              // 2 lines, 5x8 font
+  lcdCmd(0x0C);                              // display on, no cursor
+  lcdCmd(0x06);                              // cursor moves right
+  lcdCmd(0x01); delay(3);                    // clear
+  lcdOk = true;
+  Serial.printf("LCD found at 0x%02X\n", lcdAddr);
+}
+
+// writes one 16-char row (pads with spaces); only touches the LCD if the text changed
+void lcdLine(uint8_t row, const char* s) {
+  if (!lcdOk) return;
+  char pad[17]; int i = 0;
+  for (; i < 16 && s[i]; i++) pad[i] = s[i];
+  for (; i < 16; i++) pad[i] = ' ';
+  pad[16] = 0;
+  if (memcmp(pad, lcdCache[row], 17) == 0) return;
+  memcpy(lcdCache[row], pad, 17);
+  lcdCmd(0x80 | (row ? 0x40 : 0x00));
+  for (int k = 0; k < 16; k++) lcdSend((uint8_t)pad[k], LCD_RS);
+}
+
+// normal screens: fill % + progress bar, alternating with counters (unless full)
+void lcdRefresh() {
+  if (!lcdOk) return;
+  if (millis() < lcdMsgUntil) { lcdLine(0, lcdMsg0); lcdLine(1, lcdMsg1); return; }
+  char a[20], b[20];
+  bool statsPage = !isFull && ((millis() / 4000) % 2 == 1);
+  if (statsPage) {
+    snprintf(a, sizeof(a), "Today: %lu", (unsigned long)itemsToday);
+    snprintf(b, sizeof(b), "Total: %lu", (unsigned long)itemsTotal);
+  } else {
+    snprintf(a, sizeof(a), "Fill:%3d%%  %s", fillPct, isFull ? "FULL!" : "OK");
+    int n = fillPct * 16 / 100;
+    for (int i = 0; i < 16; i++) b[i] = (i < n) ? (char)0xFF : ' ';   // 0xFF = solid block
+    b[16] = 0;
+  }
+  lcdLine(0, a);
+  lcdLine(1, b);
+}
+
+// show a temporary 2-line message for 'ms' milliseconds
+void lcdShowMsg(const char* a, const char* b, unsigned long ms) {
+  snprintf(lcdMsg0, sizeof(lcdMsg0), "%s", a);
+  snprintf(lcdMsg1, sizeof(lcdMsg1), "%s", b);
+  lcdMsgUntil = millis() + ms;
+  lcdRefresh();
+}
 
 // ---------- helpers ----------
 uint32_t nowSec() {
@@ -99,7 +192,8 @@ float readDistance() {
 
 int distToPct(float d) {
   float p = (BIN_DEPTH_CM - d) / (BIN_DEPTH_CM - FULL_DIST_CM) * 100.0f;
-  if (p < 0) p = 0; if (p > 100) p = 100;
+  if (p < 0) p = 0;
+  if (p > 100) p = 100;
   return (int)(p + 0.5f);
 }
 
@@ -142,6 +236,23 @@ void checkDay() {
   if (tmv.tm_yday != savedDay) { savedDay = tmv.tm_yday; itemsToday = 0; saveCounters(); }
 }
 
+// ---------- phone notification (ntfy.sh) ----------
+void notifyPhone(const char* title, const String& msg, const char* tags, const char* prio) {
+  if (NTFY_TOPIC[0] == 0 || WiFi.status() != WL_CONNECTED) return;
+  HTTPClient http;
+  http.setConnectTimeout(4000);
+  http.setTimeout(4000);
+  if (!http.begin(String("http://ntfy.sh/") + NTFY_TOPIC)) return;
+  http.addHeader("Title", title);
+  http.addHeader("Priority", prio);
+  http.addHeader("Tags", tags);
+  if (BIN_LAT != 0 || BIN_LNG != 0)           // tapping the notification opens the map
+    http.addHeader("Click", String("https://www.google.com/maps?q=") + String(BIN_LAT, 6) + "," + String(BIN_LNG, 6));
+  int code = http.POST(msg);
+  Serial.printf("[NTFY] HTTP %d\n", code);
+  http.end();
+}
+
 // ---------- web server ----------
 void cors() {
   server.sendHeader("Access-Control-Allow-Origin", "*");
@@ -173,6 +284,9 @@ void handleStatus() {
   j += ",\"t\":" + String((unsigned long)nowSec());
   j += ",\"depth\":" + String(BIN_DEPTH_CM, 0);
   j += ",\"last\":" + String((unsigned long)lastItemT);
+  j += ",\"name\":\"" + String(BIN_NAME) + "\"";
+  j += ",\"lat\":" + String(BIN_LAT, 6);
+  j += ",\"lng\":" + String(BIN_LNG, 6);
   j += "}";
   server.send(200, "application/json", j);
 }
@@ -200,17 +314,22 @@ void handleNotFound() {
 
 // ---------- setup ----------
 void connectWifi() {
+  lcdLine(0, "Smart Bin");
+  lcdLine(1, "WiFi connecting");
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   Serial.print("Connecting to WiFi");
   unsigned long t0 = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - t0 < 20000) { delay(400); Serial.print("."); }
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.printf("\nConnected. Open the dashboard and use IP: %s\n", WiFi.localIP().toString().c_str());
+    String ip = WiFi.localIP().toString();
+    Serial.printf("\nConnected. Open the dashboard and use IP: %s\n", ip.c_str());
     configTime(GMT_OFFSET_SEC, 0, "pool.ntp.org", "time.google.com");
     if (MDNS.begin("smartbin")) Serial.println("Also reachable at: smartbin.local");
+    lcdShowMsg("Dashboard IP:", ip.c_str(), 4000);
   } else {
     Serial.println("\nWiFi failed - bin still works and saves data, will retry.");
+    lcdShowMsg("WiFi failed", "Running offline", 3000);
   }
 }
 
@@ -220,6 +339,10 @@ void setup() {
   pinMode(ECHO_PIN, INPUT);
   pinMode(NEON_PIN, OUTPUT);
   setNeon(false);
+
+  lcdInit();
+  lcdLine(0, "Smart Bin");
+  lcdLine(1, "Starting...");
 
   if (!LittleFS.begin(true)) Serial.println("LittleFS mount failed");
 
@@ -246,6 +369,8 @@ void setup() {
 // ---------- main loop ----------
 void loop() {
   server.handleClient();
+
+  if (millis() - lastLcd > 500) { lastLcd = millis(); lcdRefresh(); }
 
   if (WiFi.status() != WL_CONNECTED && millis() - lastWifiTry > 15000) {
     lastWifiTry = millis();
@@ -277,6 +402,9 @@ void loop() {
       lastItemT = nowSec();
       saveCounters();
       logEvent("item");
+      char b[17];
+      snprintf(b, sizeof(b), "Today: %lu", (unsigned long)itemsToday);
+      lcdShowMsg("Item thrown in!", b, 1200);
     }
   } else if (-diff >= EMPTY_DELTA_CM) {
     delay(600);
@@ -288,6 +416,7 @@ void loop() {
       isFull = false; fullVotes = 0;
       setNeon(false);
       logEvent("emptied");
+      lcdShowMsg("Bin emptied", "Thank you!", 2500);
     }
   } else {
     lastStable = d;                        // small drift (trash settling) - just follow it
@@ -301,6 +430,10 @@ void loop() {
       isFull = true;
       setNeon(true);
       logEvent("full");
+      lcdShowMsg("!! BIN FULL !!", "Please empty me", 3000);
+      notifyPhone("Smart Bin is FULL",
+                  String(BIN_NAME) + " is " + fillPct + "% full. Please empty it.",
+                  "wastebasket,warning", "high");
     }
   } else if (fillPct < FULL_OFF_PCT) {
     isFull = false; fullVotes = 0;

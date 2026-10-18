@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Bin</title>
+<style>
+:root{--bg:#0b0f1a;--card:#121829;--line:#1f2942;--txt:#e8ecf8;--mut:#8a95b5;--ok:#22e6a0;--warn:#ffb020;--full:#ff2e93}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#16204a 0,var(--bg) 60%);color:var(--txt);font:15px/1.5 system-ui,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+.wrap{max-width:1050px;margin:0 auto;padding:20px 16px 50px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+h1{font-size:22px;margin:0;letter-spacing:.3px}
+h2{font-size:13px;margin:0 0 12px;color:var(--mut);text-transform:uppercase;letter-spacing:1.2px;font-weight:600}
+.conn{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mut);flex-wrap:wrap}
+.dot{width:9px;height:9px;border-radius:50%;background:#e04b4b}
+.dot.on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.dot.demo{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+input,button{font:inherit;font-size:13px;border-radius:8px;border:1px solid var(--line);background:#0e1424;color:var(--txt);padding:6px 10px}
+input{width:150px}
+button{cursor:pointer}button:hover{border-color:#3a4a7a}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(12,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+.c-gauge{grid-column:span 5}.c-stats{grid-column:span 7}.c-chart,.c-log{grid-column:span 12}
+@media(max-width:800px){.c-gauge,.c-stats{grid-column:span 12}}
+.ring{--p:0;--c:var(--ok);width:220px;height:220px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p)*1%),#1b2440 0);display:grid;place-items:center;margin:4px auto 14px;transition:background .6s}
+.ring .in{width:176px;height:176px;border-radius:50%;background:var(--card);display:grid;place-items:center;text-align:center;align-content:center}
+.pct{font-size:44px;font-weight:700;line-height:1}
+.pct small{font-size:20px;color:var(--mut)}
+.badge{display:inline-block;margin-top:6px;padding:2px 12px;border-radius:99px;font-size:12px;font-weight:700;letter-spacing:1px;background:#0d2a22;color:var(--ok)}
+.badge.warn{background:#33260a;color:var(--warn)}
+.badge.full{background:#3a0f27;color:var(--full)}
+.neonrow{display:flex;align-items:center;gap:12px;justify-content:center;font-size:13px;color:var(--mut)}
+.tube{width:120px;height:10px;border-radius:99px;background:#2a2f45;transition:all .3s}
+.tube.on{background:var(--full);box-shadow:0 0 6px var(--full),0 0 18px var(--full),0 0 40px var(--full);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.65}}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{background:#0e1424;border:1px solid var(--line);border-radius:12px;padding:14px}
+.stat b{display:block;font-size:28px;line-height:1.2}
+.stat span{font-size:12px;color:var(--mut)}
+canvas{width:100%;height:220px;display:block}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:1px}
+.tag{padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600}
+.t-item{background:#0d2a22;color:var(--ok)}.t-full{background:#3a0f27;color:var(--full)}
+.t-emptied{background:#0f2440;color:#5bb0ff}.t-boot{background:#262b3d;color:var(--mut)}
+.row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.empty{color:var(--mut);padding:14px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>🗑️ Smart Bin</h1>
+  <div class="conn">
+    <span class="dot" id="dot"></span><span id="connTxt">Connecting…</span>
+    <input id="ip" placeholder="ESP32 IP e.g. 192.168.1.50">
+    <button id="btnConnect">Connect</button>
+  </div>
+</header>
+
+<div class="grid">
+  <section class="card c-gauge">
+    <h2>Fill level</h2>
+    <div class="ring" id="ring"><div class="in">
+      <div class="pct"><span id="pct">0</span><small>%</small></div>
+      <div><span class="badge" id="badge">OK</span></div>
+    </div></div>
+    <div class="neonrow"><span>Neon light</span><div class="tube" id="tube"></div><b id="neonTxt">OFF</b></div>
+  </section>
+
+  <section class="card c-stats">
+    <h2>Live data</h2>
+    <div class="stats">
+      <div class="stat"><b id="dist">–</b><span>Distance to trash (cm)</span></div>
+      <div class="stat"><b id="today">0</b><span>Items today</span></div>
+      <div class="stat"><b id="total">0</b><span>Items total</span></div>
+      <div class="stat"><b id="last">–</b><span>Last item thrown</span></div>
+    </div>
+  </section>
+
+  <section class="card c-chart">
+    <h2>Fill level (live)</h2>
+    <canvas id="chart"></canvas>
+  </section>
+
+  <section class="card c-log">
+    <div class="row">
+      <h2 style="margin:0">Saved events</h2>
+      <div><button id="btnCsv">Download CSV</button> <button id="btnClear">Clear data</button></div>
+    </div>
+    <table>
+      <thead><tr><th>Time</th><th>Event</th><th>Fill</th><th>Distance</th></tr></thead>
+      <tbody id="log"></tbody>
+    </table>
+    <div class="empty" id="noLog" style="display:none">No events saved yet.</div>
+  </section>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let base=localStorage.getItem('binBase')||'';
+let demo=false, fails=0, S=null, hist=[], events=[];
+$('ip').value=base.replace(/^https?:\/\//,'');
+
+/* ---------- Demo data (used when no ESP32 is reachable) ---------- */
+const D={fill:18,full:false,today:0,total:41,log:[],depth:40,last:0};
+function demoStep(){
+  if(Math.random()<.22){
+    D.fill=Math.min(100,D.fill+3+Math.random()*6);D.today++;D.total++;D.last=Date.now()/1000;
+    D.log.push([Date.now()/1000|0,'item',D.fill|0,dd()]);
+  }
+  if(!D.full&&D.fill>=90){D.full=true;D.log.push([Date.now()/1000|0,'full',D.fill|0,dd()]);}
+  if(D.full&&Math.random()<.12){D.fill=4;D.full=false;D.log.push([Date.now()/1000|0,'emptied',4,dd()]);}
+  D.log=D.log.slice(-100);
+  return {ok:true,distance:+dd(),fill:D.fill|0,full:D.full,neon:D.full,today:D.today,total:D.total,t:Date.now()/1000|0,depth:D.depth,last:D.last};
+}
+function dd(){return (D.depth-(D.depth-5)*D.fill/100).toFixed(1);}
+function demoCsv(){return D.log.map(r=>r.join(',')).join('\n');}
+
+/* ---------- Network ---------- */
+async function getText(p){const r=await fetch(base+p,{cache:'no-store'});if(!r.ok)throw new Error(r.status);return r.text();}
+async function tick(){
+  try{
+    S=demo?demoStep():JSON.parse(await getText('/api/status'));
+    fails=0;
+    hist.push({t:Date.now(),f:S.fill});if(hist.length>90)hist.shift();
+    setConn(true);render();
+  }catch(e){
+    fails++;
+    if(!base&&fails>=2){demo=true;}
+    setConn(false);
+  }
+}
+async function loadLog(){
+  try{
+    const txt=demo?demoCsv():await getText('/log.csv');
+    events=txt.trim().split('\n').filter(Boolean).map(l=>{const p=l.split(',');return {t:+p[0],type:p[1],fill:+p[2],dist:+p[3]};}).reverse();
+    renderLog();
+  }catch(e){}
+}
+function setConn(ok){
+  const d=$('dot');
+  if(demo){d.className='dot demo';$('connTxt').textContent='Demo mode (no ESP32 found) – enter its IP →';}
+  else if(ok){d.className='dot on';$('connTxt').textContent='Connected'+(base?' to '+base.replace(/^https?:\/\//,''):'');}
+  else{d.className='dot';$('connTxt').textContent='Offline – retrying…';}
+}
+
+/* ---------- Rendering ---------- */
+function fmtTime(t){
+  if(!t)return '–';
+  if(t>1.7e9)return new Date(t*1000).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const s=t|0;return 'uptime '+Math.floor(s/3600)+'h '+Math.floor(s%3600/60)+'m '+s%60+'s';
+}
+function render(){
+  const f=S.fill;
+  const ring=$('ring');ring.style.setProperty('--p',f);
+  const full=S.full,warn=!full&&f>=60;
+  ring.style.setProperty('--c',full?'var(--full)':warn?'var(--warn)':'var(--ok)');
+  $('pct').textContent=f;
+  const b=$('badge');b.textContent=full?'FULL':warn?'ALMOST FULL':'OK';b.className='badge'+(full?' full':warn?' warn':'');
+  $('tube').className='tube'+(S.neon?' on':'');$('neonTxt').textContent=S.neon?'ON':'OFF';
+  $('dist').textContent=S.distance>0?S.distance.toFixed(1):'–';
+  $('today').textContent=S.today;$('total').textContent=S.total;
+  const li=events.find(e=>e.type==='item');
+  $('last').textContent=li?fmtTime(li.t).replace(/^.*, /,''):'–';
+  drawChart();
+}
+const LABEL={item:'Item thrown in',full:'Bin FULL – neon ON',emptied:'Bin emptied',boot:'Device started'};
+function renderLog(){
+  const tb=$('log');tb.innerHTML='';
+  events.slice(0,40).forEach(e=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${fmtTime(e.t)}</td><td><span class="tag t-${e.type}">${LABEL[e.type]||e.type}</span></td><td>${e.fill}%</td><td>${e.dist} cm</td>`;
+    tb.appendChild(tr);
+  });
+  $('noLog').style.display=events.length?'none':'block';
+}
+function drawChart(){
+  const c=$('chart'),dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;
+  c.width=w*dpr;c.height=h*dpr;const g=c.getContext('2d');g.scale(dpr,dpr);g.clearRect(0,0,w,h);
+  const L=34,B=20,T=8,W=w-L-8,H=h-B-T;
+  g.font='11px system-ui';g.fillStyle='#8a95b5';g.strokeStyle='#1f2942';g.lineWidth=1;
+  [0,25,50,75,100].forEach(v=>{const y=T+H-H*v/100;g.beginPath();g.moveTo(L,y);g.lineTo(L+W,y);g.stroke();g.fillText(v+'%',2,y+4);});
+  g.setLineDash([5,5]);g.strokeStyle='#ff2e93aa';const yf=T+H-H*.9;g.beginPath();g.moveTo(L,yf);g.lineTo(L+W,yf);g.stroke();g.setLineDash([]);
+  if(hist.length<2)return;
+  const pts=hist.map((p,i)=>[L+W*i/(hist.length-1),T+H-H*p.f/100]);
+  const gr=g.createLinearGradient(0,T,0,T+H);gr.addColorStop(0,'#22e6a055');gr.addColorStop(1,'#22e6a000');
+  g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));
+  g.lineTo(pts[pts.length-1][0],T+H);g.lineTo(pts[0][0],T+H);g.closePath();g.fillStyle=gr;g.fill();
+  g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));
+  g.strokeStyle='#22e6a0';g.lineWidth=2;g.stroke();
+}
+
+/* ---------- Buttons ---------- */
+$('btnConnect').onclick=()=>{
+  let v=$('ip').value.trim();
+  base=v?(/^https?:\/\//.test(v)?v:'http://'+v):'';
+  base=base.replace(/\/$/,'');localStorage.setItem('binBase',base);
+  demo=false;fails=0;hist=[];tick();loadLog();
+};
+$('btnCsv').onclick=()=>{
+  if(demo){const a=document.createElement('a');a.href='data:text/csv,'+encodeURIComponent('time,event,fill,distance\n'+demoCsv());a.download='smartbin.csv';a.click();return;}
+  window.open(base+'/log.csv','_blank');
+};
+$('btnClear').onclick=async()=>{
+  if(!confirm('Delete all saved data?'))return;
+  if(demo){D.log=[];D.today=0;D.total=0;}else{try{await fetch(base+'/api/clear',{method:'POST'});}catch(e){}}
+  events=[];renderLog();tick();
+};
+window.addEventListener('resize',()=>S&&drawChart());
+
+tick();loadLog();
+setInterval(tick,2000);setInterval(loadLog,5000);
+</script>
+</body>
+</html>

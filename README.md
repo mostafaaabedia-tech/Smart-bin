@@ -61,6 +61,17 @@ Optional: upload `index.html` to the ESP32's LittleFS to open the dashboard at `
 The dashboard has a location card with a map. Type the coordinates, or press "Use my location" while standing
 next to the bin, then Save (stored in your browser). Or set `BIN_NAME / BIN_LAT / BIN_LNG` in the firmware.
 
+## Dashboard features
+- Glass/aurora UI, dark + light theme, English + Persian (RTL), phone friendly, kiosk/fullscreen and print mode.
+- Animated 3D bin built from the real photos: live fill level in the service window, LCD mirror, sonar beam, item-drop splash, pulsing neon when full, sparkles when emptied.
+- Several bins: add ESP32s by IP/`smartbin.local`, switch between them from the top cards, each with its own level ring.
+- KPIs: fill rate, estimated time to full, average time to fill, last emptied, items today/total.
+- Fill history chart (1h/6h/24h/7d) with hover read-out, weekly activity bars, busy-hours heatmap.
+- Alerts: banner, sound, voice, vibration, browser notification, early-warning level (slider), offline alert.
+- Event log with filters, show-more, CSV download, clear data, and a demo mode with controls when no ESP32 is saved.
+
+The firmware is unchanged by this dashboard; it uses the same API.
+
 ## Note about GitHub Pages
 A page served over `https` cannot read data from the ESP32's plain `http` address (browser rule), so the online
 version shows demo data. For real data open `index.html` from your computer, or serve it from the ESP32.

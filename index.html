@@ -1,543 +1,1333 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05060a">
 <title>Smart Bin</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2305060a'/%3E%3Cpath d='M9 12h14l-1.5 13h-11z' fill='none' stroke='%232cf5c0' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M7 9h18M13 9V7h6v2' stroke='%232cf5c0' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Space+Grotesk:wght@400;500;700&family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#06070b;--panel:#0c0f16;--panel2:#11151f;--line:#1b2230;--txt:#e8ecf6;--mut:#7a86a3;
-  --ok:#2cf5c0;--warn:#ffbf3c;--full:#ff2a8a;--blue:#5b8cff;
+  --bg:#05060a;--bg2:#0b0e17;--txt:#eaf0ff;--mut:#8b97b6;--line:rgba(255,255,255,.09);--line2:rgba(255,255,255,.17);
+  --card:rgba(255,255,255,.055);--card2:rgba(255,255,255,.018);--field:rgba(255,255,255,.06);
+  --ok:#2cf5c0;--warn:#ffbf3c;--full:#ff2a8a;--blue:#5b8cff;--off:#7a8296;--acc:var(--ok);
   --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
-  --sans:'Space Grotesk',system-ui,'Segoe UI',Roboto,sans-serif;
+  --sans:'Space Grotesk','Vazirmatn',system-ui,'Segoe UI',Roboto,sans-serif;
+  --r:22px;
 }
+html[data-theme=light]{
+  --bg:#eef2fa;--bg2:#e4eaf6;--txt:#0e1526;--mut:#56627f;--line:rgba(14,21,38,.11);--line2:rgba(14,21,38,.22);
+  --card:rgba(255,255,255,.82);--card2:rgba(255,255,255,.55);--field:rgba(14,21,38,.05);
+  --ok:#00a97c;--warn:#d98a00;--full:#e0156a;--blue:#3f6fe8;--off:#8791a8;
+}
+html[lang=fa]{--sans:'Vazirmatn','Space Grotesk',system-ui,sans-serif}
+html[lang=fa] *{letter-spacing:0!important}
+body.st-warn{--acc:var(--warn)}body.st-full{--acc:var(--full)}body.st-off{--acc:var(--off)}body.st-conn{--acc:var(--blue)}
 *{box-sizing:border-box}
-html{color-scheme:dark}
-body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.5 var(--sans);min-height:100vh;overflow-x:hidden;--acc:var(--ok)}
-body.is-full{--acc:var(--full)}
-body::before{content:"";position:fixed;inset:0;z-index:-2;
-  background:radial-gradient(900px 520px at 85% -10%,color-mix(in srgb,var(--acc) 24%,transparent),transparent 62%),
-             radial-gradient(700px 420px at -10% 110%,#2a3cff26,transparent 60%)}
-body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.4;
+html{color-scheme:dark;-webkit-text-size-adjust:100%}
+html[data-theme=light]{color-scheme:light}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.55 var(--sans);min-height:100vh;overflow-x:hidden;transition:background .4s}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1240px;margin:0 auto;padding:18px 16px 70px}
+.sp{flex:1}.mut{color:var(--mut)}
+.ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ===== background ===== */
+.aurora{position:fixed;inset:0;z-index:-2;overflow:hidden;pointer-events:none}
+.aurora i{position:absolute;width:64vmax;height:64vmax;border-radius:50%;opacity:.55;will-change:transform;
+  background:radial-gradient(circle,color-mix(in srgb,var(--acc) 34%,transparent),transparent 62%);animation:drift 28s ease-in-out infinite alternate;transition:background 1s}
+.aurora i:nth-child(1){left:-20vmax;top:-30vmax}
+.aurora i:nth-child(2){right:-26vmax;top:8vmax;background:radial-gradient(circle,#5b8cff2e,transparent 62%);animation-duration:34s;animation-delay:-9s}
+.aurora i:nth-child(3){left:18vmax;bottom:-44vmax;background:radial-gradient(circle,#a855f72b,transparent 62%);animation-duration:40s;animation-delay:-15s}
+html[data-theme=light] .aurora i{opacity:.4}
+@keyframes drift{to{transform:translate(9vmax,6vmax) scale(1.15)}}
+body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.35;
   background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
-  background-size:44px 44px;-webkit-mask-image:radial-gradient(ellipse at 50% 15%,#000 15%,transparent 72%);mask-image:radial-gradient(ellipse at 50% 15%,#000 15%,transparent 72%)}
-.wrap{max-width:1120px;margin:0 auto;padding:22px 16px 60px}
+  background-size:46px 46px;-webkit-mask-image:radial-gradient(ellipse at 50% 12%,#000 10%,transparent 70%);mask-image:radial-gradient(ellipse at 50% 12%,#000 10%,transparent 70%)}
 
-/* header */
-header{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;margin-bottom:20px}
-.brand{font:800 21px var(--mono);letter-spacing:.5px}
-.brand b{color:var(--acc);transition:color .4s}
-.brand i{display:inline-block;width:9px;height:19px;background:var(--acc);margin-left:7px;vertical-align:-3px;animation:blink 1s steps(2) infinite}
+/* ===== header ===== */
+header{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:var(--acc);
+  background:linear-gradient(145deg,color-mix(in srgb,var(--acc) 28%,transparent),transparent);
+  border:1px solid color-mix(in srgb,var(--acc) 45%,var(--line));box-shadow:0 0 26px -6px var(--acc);transition:all .6s}
+.logo .ic{width:23px;height:23px}
+.bn{font:800 20px var(--mono);letter-spacing:.5px;line-height:1.1}
+.bn b{color:var(--acc);transition:color .6s}
 .where{font:600 12px var(--mono);color:var(--mut);margin-top:2px}
-@keyframes blink{50%{opacity:0}}
-.conn{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font:600 12px var(--mono);color:var(--mut)}
-.dot{width:9px;height:9px;border-radius:50%;background:#e04b4b}
-.dot.on{background:var(--ok);box-shadow:0 0 10px var(--ok)}
+.hdr-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:99px;background:var(--field);border:1px solid var(--line);font:600 11px var(--mono);letter-spacing:.8px;color:var(--mut)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--off);flex:none}
+.dot.on{background:var(--ok);box-shadow:0 0 10px var(--ok);animation:pulse 2.4s infinite}
 .dot.demo{background:var(--warn);box-shadow:0 0 10px var(--warn)}
-input,button{font:inherit;font-size:13px;border-radius:9px;border:1px solid var(--line);background:#0a0d14;color:var(--txt);padding:7px 11px}
-input{width:100%}
-.conn input{width:170px}
-input:focus{outline:none;border-color:var(--acc)}
-button{cursor:pointer;font-weight:600;transition:border-color .2s,background .2s}
-button:hover{border-color:var(--acc)}
-button.primary{background:color-mix(in srgb,var(--acc) 18%,#0a0d14);border-color:color-mix(in srgb,var(--acc) 55%,var(--line))}
+.dot.bad{background:var(--full);box-shadow:0 0 10px var(--full)}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;min-width:36px;padding:0 10px;border-radius:11px;border:1px solid var(--line);background:var(--field);cursor:pointer;font:600 12px var(--mono);transition:.2s}
+.icon-btn:hover{border-color:var(--acc);color:var(--acc);transform:translateY(-1px)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:7px 13px;border-radius:11px;border:1px solid var(--line);background:var(--field);cursor:pointer;font-weight:600;font-size:13px;transition:.2s}
+.btn:hover{border-color:var(--acc)}
+.btn.pri{background:color-mix(in srgb,var(--acc) 20%,transparent);border-color:color-mix(in srgb,var(--acc) 55%,var(--line))}
+.btn.danger{color:var(--full);border-color:color-mix(in srgb,var(--full) 40%,var(--line))}
+.btn:disabled{opacity:.5;cursor:default}
+@keyframes pulse{50%{opacity:.55}}
 
-/* layout */
-.grid{display:grid;gap:16px;grid-template-columns:repeat(12,1fr)}
+/* ===== cards ===== */
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px;margin-top:16px}
+.grid>*{min-width:0}
+.card{position:relative;background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:var(--r);padding:20px;
+  backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 22px 50px -26px rgba(0,0,0,.55);transition:border-color .6s,box-shadow .6s}
+.card::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;opacity:.75;transition:opacity .6s;
+  background:linear-gradient(160deg,color-mix(in srgb,var(--acc) 42%,transparent),transparent 38%,transparent 68%,color-mix(in srgb,var(--acc) 20%,transparent));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+body.st-full .card.glow{box-shadow:0 0 70px -14px #ff2a8a66,0 1px 0 rgba(255,255,255,.06) inset}
+.lbl{display:flex;align-items:center;gap:9px;margin:0 0 14px;font:600 11px var(--mono);letter-spacing:2px;text-transform:uppercase;color:var(--mut)}
+.lbl .ic{color:var(--acc);transition:color .6s}
+.pill{padding:3px 10px;border-radius:99px;background:var(--field);border:1px solid var(--line);font:600 10px var(--mono);letter-spacing:1px;color:var(--txt);text-transform:none}
+.pill.demo{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,var(--line))}
+.hint{font-size:12px;color:var(--mut);margin:8px 0 0}
 .c-bin{grid-column:span 5}.c-main{grid-column:span 7;display:flex;flex-direction:column;gap:16px}
-.c-loc{grid-column:span 7}.c-side{grid-column:span 5;display:flex;flex-direction:column;gap:16px}
+.c-week{grid-column:span 5}.c-heat{grid-column:span 7}
+.c-loc{grid-column:span 7;display:flex;flex-direction:column}.c-set{grid-column:span 5}
 .c-log{grid-column:span 12}
-@media(max-width:860px){.c-bin,.c-main,.c-loc,.c-side{grid-column:span 12}}
-.panel{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:20px;padding:18px;position:relative;transition:border-color .4s,box-shadow .4s}
-body.is-full .panel.glow{border-color:color-mix(in srgb,var(--full) 55%,var(--line));box-shadow:0 0 32px #ff2a8a22}
-.lbl{font:600 11px var(--mono);letter-spacing:2px;text-transform:uppercase;color:var(--mut);margin:0 0 14px;display:flex;align-items:center;gap:8px}
-.lbl::before{content:"";width:8px;height:8px;background:var(--acc);border-radius:2px;box-shadow:0 0 10px var(--acc);transition:background .4s}
-.lbl .sp{flex:1}
+@media(max-width:940px){.c-bin,.c-main,.c-week,.c-heat,.c-loc,.c-set{grid-column:span 12}}
 
-/* bin */
-.c-bin{text-align:center}
-#binsvg{width:100%;max-width:330px;height:auto;display:block;margin:0 auto;overflow:visible}
-#binsvg .outline{fill:none;stroke:var(--c);stroke-width:2;stroke-linejoin:round;transition:stroke .4s}
+/* ===== fleet ===== */
+.fleet{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 12px;scroll-snap-type:x proximity;scrollbar-width:thin}
+.bcard{position:relative;flex:0 0 auto;min-width:212px;display:flex;gap:12px;align-items:center;padding:12px 16px 12px 12px;border-radius:18px;border:1px solid var(--line);
+  background:linear-gradient(180deg,var(--card),var(--card2));cursor:pointer;scroll-snap-align:start;transition:.25s;--sc:var(--ok)}
+html[dir=rtl] .bcard{padding:12px 12px 12px 16px}
+.bcard:hover{transform:translateY(-2px);border-color:var(--line2)}
+.bcard.sel{border-color:var(--sc);box-shadow:0 0 28px -8px var(--sc)}
+.bcard.s-warn{--sc:var(--warn)}.bcard.s-full{--sc:var(--full)}.bcard.s-off,.bcard.s-conn{--sc:var(--off)}
+.bcard .ring{width:46px;height:46px;flex:none;position:relative}
+.bcard .ring svg{width:46px;height:46px;transform:rotate(-90deg);direction:ltr}
+.bcard .ring circle{fill:none;stroke-width:5}
+.bcard .ring .rb{stroke:var(--field)}
+.bcard .ring .rf{stroke:var(--sc);stroke-linecap:round;stroke-dasharray:113.1;transition:stroke-dashoffset .8s,stroke .4s}
+.bcard .ring b{position:absolute;inset:0;display:grid;place-items:center;font:700 11px var(--mono)}
+.bcard .nm{font-weight:700;line-height:1.2}
+.bcard .st{font:600 11px var(--mono);color:var(--sc)}
+.bcard .edit{position:absolute;top:6px;inset-inline-end:6px;width:26px;height:26px;display:grid;place-items:center;border-radius:8px;border:0;background:transparent;color:var(--mut);cursor:pointer;opacity:0;transition:.2s}
+.bcard:hover .edit{opacity:1}.bcard .edit:hover{color:var(--txt);background:var(--field)}
+.bcard .edit .ic{width:14px;height:14px}
+.addcard{display:flex;align-items:center;justify-content:center;gap:8px;min-width:150px;border-style:dashed;color:var(--mut);font-weight:600;padding:12px 16px}
+.addcard:hover{color:var(--acc);border-color:var(--acc)}
+
+/* ===== hero bin ===== */
+.hero{overflow:hidden;text-align:center}
+.hero .rel{position:relative;z-index:1}
+#fx{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.hero .lbl{text-align:start}
+.binwrap{margin:2px 0 0}
+#binsvg{width:100%;max-width:340px;height:auto;display:block;margin:0 auto;overflow:visible;direction:ltr}
+#binsvg .outline{fill:none;stroke:var(--c);stroke-width:2;stroke-linejoin:round;transition:stroke .5s}
 #binsvg .edge{fill:none;stroke:#eef2fa;stroke-opacity:.35;stroke-width:1.2}
-#binsvg .neon{fill:none;stroke:var(--full);stroke-width:5;stroke-linejoin:round;opacity:0;transition:opacity .4s;
+#binsvg .neon{fill:none;stroke:var(--full);stroke-width:5;stroke-linejoin:round;opacity:0;transition:opacity .5s;
   filter:drop-shadow(0 0 5px var(--full)) drop-shadow(0 0 16px var(--full)) drop-shadow(0 0 34px var(--full))}
-body.is-full #binsvg .neon{opacity:1;animation:flick 3.4s infinite}
+#binsvg.isfull .neon{opacity:1;animation:flick 3.4s infinite}
 @keyframes flick{0%,45%,52%,90%,100%{opacity:1}47%{opacity:.3}49%{opacity:.9}92%{opacity:.6}95%{opacity:1}}
+#binsvg .float{animation:floaty 6s ease-in-out infinite}
+@keyframes floaty{50%{transform:translateY(-5px)}}
+#binsvg .shadow{transform-box:fill-box;transform-origin:center;animation:shad 6s ease-in-out infinite}
+@keyframes shad{50%{transform:scale(.93);opacity:.38}}
+#binsvg.isfull .shake{animation:shake 5s infinite}
+@keyframes shake{0%,90%,100%{transform:none}92%{transform:translateX(-2px)}94%{transform:translateX(2px)}96%{transform:translateX(-1px)}}
+#binsvg .rings ellipse{fill:none;stroke:var(--full);stroke-width:2;opacity:0;transform-box:fill-box;transform-origin:center}
+#binsvg.isfull .rings ellipse{animation:ring 3s ease-out infinite}
+#binsvg .rings ellipse:nth-child(2){animation-delay:1s}#binsvg .rings ellipse:nth-child(3){animation-delay:2s}
+@keyframes ring{0%{opacity:.85;transform:scale(.55)}100%{opacity:0;transform:scale(1.75)}}
 #binsvg .trash{transition:transform .9s cubic-bezier(.3,.8,.3,1)}
 #binsvg .wavemove{animation:wave 2.4s linear infinite}
+#binsvg .wavemove2{animation:wave 3.6s linear infinite reverse}
 @keyframes wave{to{transform:translateX(-32px)}}
-#binsvg .cone{fill:var(--c);opacity:.12;animation:cone 1.6s ease-in-out infinite}
+#binsvg .cone{fill:var(--c);opacity:.12;animation:cone 1.8s ease-in-out infinite}
 @keyframes cone{50%{opacity:.26}}
 #binsvg .beam{stroke:var(--c);stroke-width:1.2;stroke-dasharray:3 4;fill:none;animation:dash .8s linear infinite}
 @keyframes dash{to{stroke-dashoffset:-14}}
+#binsvg .rip{fill:none;stroke:var(--c);stroke-width:1.3;opacity:0;transform-box:fill-box;transform-origin:center;animation:rip 2.4s ease-out infinite}
+#binsvg .rip:nth-child(2){animation-delay:.8s}#binsvg .rip:nth-child(3){animation-delay:1.6s}
+@keyframes rip{0%{opacity:.9;transform:translateY(0) scale(.5)}100%{opacity:0;transform:translateY(var(--rd,80px)) scale(2.2)}}
 #binsvg .itemdrop{opacity:0;transform-box:fill-box;transform-origin:center}
 #binsvg .itemdrop.go{animation:drop .9s cubic-bezier(.5,0,.9,.6) forwards}
 @keyframes drop{0%{opacity:0;transform:translateY(0) rotate(0)}12%{opacity:1}82%{opacity:1}100%{opacity:0;transform:translateY(var(--drop,80px)) rotate(50deg)}}
 #binsvg .slit.flash{animation:slitflash .9s ease-out}
 @keyframes slitflash{0%,100%{fill:#0a0d13}25%{fill:var(--c)}}
-body.is-full #binsvg .glowsym{filter:drop-shadow(0 0 2px var(--full)) drop-shadow(0 0 6px var(--full));animation:pulse 1.4s ease-in-out infinite}
-.pctbig{font:800 66px/1 var(--mono);letter-spacing:-3px;margin-top:6px}
+#binsvg .sp{fill:var(--c);animation:splash .7s ease-out forwards}
+@keyframes splash{0%{opacity:1;transform:translate(0,0)}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
+#binsvg .spark{fill:#fff;opacity:0;transform-box:fill-box;transform-origin:center;animation:spark 1.2s ease-out forwards;filter:drop-shadow(0 0 4px var(--c))}
+@keyframes spark{0%{opacity:0;transform:translateY(0) scale(.2)}30%{opacity:1;transform:translateY(-8px) scale(1)}100%{opacity:0;transform:translateY(-34px) scale(.3)}}
+#binsvg .sheen{animation:sheen 7s ease-in-out infinite}
+@keyframes sheen{0%,55%{transform:translateX(-80px)}100%{transform:translateX(260px)}}
+#binsvg .backlit{animation:backlit 3.4s ease-in-out infinite}
+@keyframes backlit{50%{opacity:.35}}
+#binsvg.isfull .glowsym{filter:drop-shadow(0 0 2px var(--full)) drop-shadow(0 0 7px var(--full));animation:pulse 1.4s ease-in-out infinite}
+#binsvg.isfull #lcd1{animation:lcdblink 1.2s steps(2) infinite}
+@keyframes lcdblink{50%{opacity:.25}}
+.pctrow{margin-top:4px}
+.pctbig{font:800 68px/1 var(--mono);letter-spacing:-3px;color:var(--txt)}
 .pctbig small{font-size:26px;color:var(--mut);letter-spacing:0}
-.neonrow{display:flex;align-items:center;gap:12px;justify-content:center;margin-top:12px;font:600 12px var(--mono);color:var(--mut);letter-spacing:1px}
-.tube{width:110px;height:9px;border-radius:99px;background:#252b3f;transition:all .3s}
-.tube.on{background:var(--full);box-shadow:0 0 6px var(--full),0 0 18px var(--full),0 0 40px var(--full);animation:pulse 1.4s ease-in-out infinite}
-@keyframes pulse{50%{opacity:.6}}
+.segwrap{position:relative;direction:ltr;margin:14px 6px 8px;padding-top:2px}
+.seg{display:grid;grid-template-columns:repeat(25,1fr);gap:3px;height:14px}
+.seg i{border-radius:4px;background:var(--field);transition:background .35s,box-shadow .35s,transform .35s}
+.seg i.on{transform:scaleY(1.12)}
+.seg i.on.g{background:var(--ok);box-shadow:0 0 10px -1px var(--ok)}
+.seg i.on.a{background:var(--warn);box-shadow:0 0 10px -1px var(--warn)}
+.seg i.on.r{background:var(--full);box-shadow:0 0 10px -1px var(--full)}
+.mk{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;border-radius:2px;background:var(--warn);opacity:.9}
+.mk.full{background:var(--full)}
+.mk span{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:4px;font:600 10px var(--mono);color:var(--mut);white-space:nowrap}
+.neonrow{display:flex;align-items:center;gap:12px;justify-content:center;margin-top:30px;font:600 12px var(--mono);color:var(--mut);letter-spacing:1px}
+.tube{width:110px;height:9px;border-radius:99px;background:var(--field);border:1px solid var(--line);transition:all .3s}
+.tube.on{background:var(--full);border-color:var(--full);box-shadow:0 0 6px var(--full),0 0 18px var(--full),0 0 40px var(--full);animation:pulse 1.4s ease-in-out infinite}
+.democtl{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+.democtl .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.democtl p{margin:10px 0 0;font-size:12px;color:var(--mut)}
 
-/* status */
-.headline{font:700 clamp(30px,5vw,46px)/1.05 var(--sans);letter-spacing:-1px;margin:0 0 6px;transition:color .4s}
+/* ===== status + kpis ===== */
+.headline{font:700 clamp(30px,5vw,48px)/1.05 var(--sans);letter-spacing:-1px;margin:0 0 4px;color:var(--acc);transition:color .6s}
 .sub{color:var(--mut);margin:0 0 16px}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-@media(max-width:560px){.stats{grid-template-columns:1fr 1fr}}
-.stat{background:#0a0d14;border:1px solid var(--line);border-radius:14px;padding:12px}
-.stat b{display:block;font:800 22px/1.2 var(--mono);white-space:nowrap}
-.stat span{font:600 10px var(--mono);color:var(--mut);letter-spacing:1px;text-transform:uppercase}
-canvas{width:100%;height:190px;display:block}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media(max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--field);border:1px solid var(--line);border-radius:16px;padding:12px 14px;transition:border-color .3s}
+.kpi:hover{border-color:var(--line2)}
+.kpi b{display:block;font:700 21px/1.2 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi span{font:600 10px var(--mono);color:var(--mut);letter-spacing:1px;text-transform:uppercase}
+.upd{font:600 11px var(--mono);text-transform:none;letter-spacing:0;color:var(--mut)}
 
-/* location */
-.c-loc{display:flex;flex-direction:column}
-.locgrid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px;flex:1}
-@media(max-width:640px){.locgrid{grid-template-columns:1fr}}
-.mapbox{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);min-height:230px;background:#0a0d14}
-.mapbox iframe{position:absolute;inset:0;width:100%;height:100%;border:0;filter:invert(.92) hue-rotate(180deg) saturate(.7) brightness(.9)}
+/* ===== charts ===== */
+.rng{display:flex;gap:4px;background:var(--field);border:1px solid var(--line);border-radius:11px;padding:3px}
+.rng button{border:0;background:transparent;padding:3px 11px;border-radius:8px;cursor:pointer;font:600 11px var(--mono);color:var(--mut);transition:.2s}
+.rng button.on{background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--txt)}
+.chartbox{position:relative}
+#chart{width:100%;height:230px;display:block;direction:ltr;touch-action:pan-y}
+.tip{position:absolute;top:6px;pointer-events:none;padding:6px 10px;border-radius:10px;background:var(--bg2);border:1px solid var(--line2);font:600 12px var(--mono);white-space:nowrap;transform:translateX(-50%);box-shadow:0 8px 24px -8px #000a;opacity:0;transition:opacity .15s;z-index:2;direction:ltr}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-top:6px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:6px}
+.wk{display:flex;align-items:flex-end;gap:10px;height:172px}
+.wk .col{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%;font:600 10px var(--mono);color:var(--mut)}
+.wk .col em{font-style:normal;color:var(--txt);font-size:12px}
+.wk .col .b{width:100%;flex:none;border-radius:9px 9px 4px 4px;background:linear-gradient(180deg,var(--blue),color-mix(in srgb,var(--blue) 18%,transparent));transition:height .8s cubic-bezier(.3,.8,.3,1);min-height:4px}
+.wk .col.today .b{background:linear-gradient(180deg,var(--acc),color-mix(in srgb,var(--acc) 18%,transparent))}
+.wk .col span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.heat{display:grid;grid-template-columns:auto repeat(24,minmax(0,1fr));gap:3px;align-items:center;direction:ltr}
+html[dir=rtl] .heat{direction:rtl}
+.heat .hl{font:600 10px var(--mono);color:var(--mut);padding-inline-end:8px;white-space:nowrap}
+.heat .hh{font:600 9px var(--mono);color:var(--mut);text-align:center;overflow:visible;white-space:nowrap}
+.heat i{aspect-ratio:1;border-radius:4px;background:color-mix(in srgb,var(--ok) calc(var(--v)*100%),var(--field));animation:pop .5s backwards;animation-delay:calc(var(--i)*6ms)}
+@keyframes pop{from{opacity:0;transform:scale(.4)}}
+.heatleg{display:flex;align-items:center;gap:6px;justify-content:flex-end;font-size:11px;color:var(--mut);margin-top:10px}
+.heatleg i{width:14px;height:14px;border-radius:4px;display:inline-block;background:color-mix(in srgb,var(--ok) calc(var(--v)*100%),var(--field))}
+
+/* ===== location + settings ===== */
+.locgrid{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;flex:1}
+@media(max-width:700px){.locgrid{grid-template-columns:1fr}}
+.mapbox{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);min-height:250px;background:var(--field)}
+.mapbox iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+html[data-theme=dark] .mapbox iframe{filter:invert(.92) hue-rotate(180deg) saturate(.7) brightness(.9)}
 .nomap{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--mut);font:600 13px var(--mono);padding:14px}
 .locform{display:flex;flex-direction:column;gap:10px}
-.locform label{font:600 10px var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--mut);display:flex;flex-direction:column;gap:4px}
+.locform label,.fld{font:600 10px var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--mut);display:flex;flex-direction:column;gap:4px}
+input[type=text],input:not([type]),input[type=number]{width:100%;padding:8px 11px;border-radius:10px;border:1px solid var(--line);background:var(--field);font-size:14px;text-transform:none;letter-spacing:0}
+input:focus{outline:none;border-color:var(--acc)}
+.ltr{direction:ltr;text-align:left}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.btns{display:flex;gap:8px;flex-wrap:wrap}
-.hint{font-size:12px;color:var(--mut)}
+.btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 a{color:var(--blue);font-size:13px;font-weight:600;text-decoration:none}a:hover{text-decoration:underline}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.setrow.col{flex-direction:column;align-items:stretch;gap:8px}
+.setrow .rowtop{display:flex;justify-content:space-between;align-items:center;gap:12px}
+input[type=range]{accent-color:var(--acc);width:100%}
+.sw{position:relative;display:inline-block;width:44px;height:26px;flex:none}
+.sw input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer;z-index:2}
+.sw i{position:absolute;inset:0;border-radius:99px;background:var(--field);border:1px solid var(--line2);transition:.25s}
+.sw i::after{content:"";position:absolute;top:2px;inset-inline-start:2px;width:20px;height:20px;border-radius:50%;background:var(--mut);transition:.25s}
+.sw input:checked+i{background:color-mix(in srgb,var(--acc) 32%,transparent);border-color:var(--acc)}
+.sw input:checked+i::after{inset-inline-start:20px;background:var(--acc)}
 
-/* alerts + activity */
-.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
-.row:last-of-type{border-bottom:0}
-.bars{display:flex;align-items:flex-end;gap:6px;height:120px}
-.bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;font:600 10px var(--mono);color:var(--mut)}
-.bar i{display:block;width:100%;min-height:3px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--acc),color-mix(in srgb,var(--acc) 25%,transparent))}
-.bar em{font-style:normal;color:var(--txt)}
-
-/* log */
-.logrow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+/* ===== table ===== */
+.logrow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 10px}
+.chips button{border:1px solid var(--line);background:var(--field);padding:4px 12px;border-radius:99px;cursor:pointer;font:600 12px var(--sans);color:var(--mut);transition:.2s}
+.chips button b{font-family:var(--mono);font-weight:600;margin-inline-start:6px;opacity:.7}
+.chips button.on{color:var(--txt);border-color:var(--acc);background:color-mix(in srgb,var(--acc) 16%,transparent)}
+.tablewrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--line)}
-th{font:600 10px var(--mono);color:var(--mut);text-transform:uppercase;letter-spacing:1.5px}
-td:nth-child(n+3){font-family:var(--mono)}
-.tag{padding:2px 9px;border-radius:7px;font:600 11px var(--mono)}
-.t-item{background:#0b2b24;color:var(--ok)}.t-full{background:#3a0f27;color:var(--full)}
-.t-emptied{background:#10233f;color:#6aa5ff}.t-boot{background:#222737;color:var(--mut)}
-.empty{color:var(--mut);padding:14px 0}
+th,td{text-align:start;padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font:600 10px var(--mono);color:var(--mut);text-transform:uppercase;letter-spacing:1.4px}
+td:nth-child(n+3){font-family:var(--mono);font-size:13px}
+tbody tr{transition:background .2s}tbody tr:hover{background:var(--field)}
+tbody tr.new{animation:rowin .8s ease-out}
+@keyframes rowin{from{background:color-mix(in srgb,var(--acc) 30%,transparent)}}
+.tag{padding:2px 10px;border-radius:7px;font:600 11px var(--mono)}
+.t-item{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.t-full{background:color-mix(in srgb,var(--full) 18%,transparent);color:var(--full)}
+.t-emptied{background:color-mix(in srgb,var(--blue) 18%,transparent);color:var(--blue)}
+.t-boot{background:var(--field);color:var(--mut)}
+.mini{display:inline-block;width:54px;height:6px;border-radius:4px;background:var(--field);vertical-align:middle;margin-inline-end:8px;overflow:hidden}
+.mini i{display:block;height:100%;background:var(--acc);border-radius:4px}
+.empty{color:var(--mut);padding:14px 0}.center{text-align:center;margin-top:12px}
+footer{margin-top:30px;text-align:center;font:600 11px var(--mono);color:var(--mut);letter-spacing:1px}
 
-/* alert banner */
-#alert{position:fixed;top:0;left:0;right:0;z-index:50;transform:translateY(-120%);transition:transform .45s cubic-bezier(.3,1.2,.4,1);
-  background:linear-gradient(90deg,#ff2a8a,#ff5a3c);color:#fff;padding:13px 16px;display:flex;gap:14px;align-items:center;justify-content:center;
-  font-weight:700;box-shadow:0 10px 40px #ff2a8a77;text-align:center}
+/* ===== alert banner / toasts / dialog ===== */
+#alert{position:fixed;top:0;inset-inline:0;z-index:70;transform:translateY(-130%);transition:transform .5s cubic-bezier(.3,1.2,.4,1);display:flex;gap:12px;align-items:center;justify-content:center;
+  padding:12px 16px;font-weight:700;color:#fff;text-align:center;box-shadow:0 12px 40px #0008;background:linear-gradient(90deg,#ff2a8a,#ff5a3c)}
 #alert.show{transform:none}
-#alert button{background:#0006;border-color:#fff5;color:#fff}
+#alert.warn{background:linear-gradient(90deg,#f59e0b,#ff7a18)}
+#alert.off{background:linear-gradient(90deg,#475069,#2b3348)}
+#alert button{background:#0005;border:1px solid #fff5;color:#fff;border-radius:9px;padding:5px 12px;cursor:pointer}
+#toasts{position:fixed;inset-inline:0;bottom:16px;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:60;pointer-events:none;padding:0 12px}
+.toast{pointer-events:auto;max-width:min(92vw,460px);padding:10px 16px;border-radius:14px;background:var(--bg2);border:1px solid var(--line2);box-shadow:0 14px 40px -10px #000a;font-weight:600;font-size:14px;
+  opacity:0;transform:translateY(14px) scale(.96);transition:.35s cubic-bezier(.3,1.3,.5,1)}
+.toast.in{opacity:1;transform:none}
+.toast.full{border-color:var(--full);box-shadow:0 0 30px -6px var(--full)}.toast.warn{border-color:var(--warn)}.toast.ok{border-color:var(--ok)}
+dialog{background:var(--bg2);color:var(--txt);border:1px solid var(--line2);border-radius:22px;padding:24px;width:min(440px,calc(100% - 32px));box-shadow:0 30px 90px -20px #000}
+dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(5px)}
+dialog h3{margin:0 0 14px;font-size:20px}
+dialog .fld{margin-bottom:12px}
+.msg{min-height:20px;font-size:13px;color:var(--mut)}.msg.ok{color:var(--ok)}.msg.bad{color:var(--full)}
+
+/* ===== kiosk ===== */
+#kioskExit{position:fixed;top:14px;inset-inline-end:14px;z-index:50}
+body.kiosk .k-hide{display:none!important}
+body.kiosk .c-bin{grid-column:span 6}body.kiosk .c-main{grid-column:span 6}
+body.kiosk .pctbig{font-size:92px}body.kiosk #binsvg{max-width:420px}
+body.kiosk .headline{font-size:clamp(40px,6vw,72px)}
+@media(max-width:940px){body.kiosk .c-bin,body.kiosk .c-main{grid-column:span 12}}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+@media print{
+  body{background:#fff;color:#000}.aurora,.noprint,#alert,#toasts,.democtl,#fx,body::after{display:none!important}
+  .card{background:#fff;border:1px solid #bbb;box-shadow:none;backdrop-filter:none;break-inside:avoid;margin-bottom:12px}.card::before{display:none}
+  .grid{display:block}.k-hide{display:block!important}
+}
 </style>
 </head>
-<body>
-<div id="alert" role="alert"><span id="alertTxt">Bin is full</span><button id="alertX">Dismiss</button></div>
+<body class="st-conn">
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-bin" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14"/><path d="M10 11v6M14 11v6"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+  <symbol id="i-act" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+  <symbol id="i-max" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="i-min" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-dl" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></symbol>
+</defs></svg>
+
+<div id="alert" role="alert"><svg class="ic"><use href="#i-bell"/></svg><span id="alertTxt"></span><button id="alertX" data-i18n="dismiss">Dismiss</button></div>
+<button class="icon-btn" id="kioskExit" hidden><svg class="ic"><use href="#i-min"/></svg><span data-i18n="exitKiosk">Exit</span></button>
 
 <div class="wrap">
-<header>
-  <div>
-    <div class="brand">SMART<b>//</b>BIN<i></i></div>
-    <div class="where" id="whereChip">📍 location not set</div>
-  </div>
-  <div class="conn">
-    <span class="dot" id="dot"></span><span id="connTxt">CONNECTING…</span>
-    <input id="ip" placeholder="ESP32 IP or smartbin.local">
-    <button id="btnConnect">Connect</button>
-  </div>
-</header>
+  <header class="noprint">
+    <div class="brand">
+      <div class="logo"><svg class="ic"><use href="#i-bin"/></svg></div>
+      <div><div class="bn">SMART<b>//</b>BIN</div><div class="where" id="whereChip"></div></div>
+    </div>
+    <div class="hdr-r">
+      <span class="chip" id="conn"><i class="dot" id="dot"></i><span id="connTxt"></span></span>
+      <button class="icon-btn" id="btnLang" title="Language"><svg class="ic"><use href="#i-globe"/></svg><span id="langTxt">FA</span></button>
+      <button class="icon-btn" id="btnTheme" title="Theme"><svg class="ic"><use href="#i-sun" id="themeUse"/></svg></button>
+      <button class="icon-btn" id="btnKiosk" data-i18n-title="kiosk" title="Kiosk"><svg class="ic"><use href="#i-max"/></svg></button>
+      <button class="icon-btn" id="btnPrint" data-i18n-title="print" title="Print"><svg class="ic"><use href="#i-print"/></svg></button>
+    </div>
+  </header>
 
-<div class="grid">
-  <section class="panel glow c-bin">
-    <div class="lbl">Fill level</div>
-    <svg id="binsvg" viewBox="0 0 292 345" style="--c:#2cf5c0" role="img" aria-label="Smart bin with live fill level">
-      <defs>
-        <linearGradient id="gSteelL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b3bbc7"/><stop offset="1" stop-color="#7a8391"/></linearGradient>
-        <linearGradient id="gSteelR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#808896"/><stop offset="1" stop-color="#535b69"/></linearGradient>
-        <linearGradient id="gTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#dcae9a"/><stop offset="1" stop-color="#b98a79"/></linearGradient>
-        <linearGradient id="gIn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#150f0b"/><stop offset="1" stop-color="#2e2119"/></linearGradient>
-        <linearGradient id="gTrash" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" style="stop-color:var(--c);stop-opacity:.95"/>
-          <stop offset="1" style="stop-color:var(--c);stop-opacity:.4"/>
-        </linearGradient>
-        <clipPath id="winclip"><rect x="12" y="40" width="106" height="120"/></clipPath>
-        <filter id="blur6" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>
-        <g id="arr">
-          <path d="M-19.05 -7 L0 -40 L4.85 -31.9" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round"/>
-          <polygon points="15.24,-37.9 -5.54,-25.9 10.85,-21.5" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-        </g>
-        <symbol id="recycle" viewBox="-52 -52 104 104">
-          <use href="#arr"/><use href="#arr" transform="rotate(120)"/><use href="#arr" transform="rotate(240)"/>
-        </symbol>
-      </defs>
-
-      <ellipse cx="146" cy="296" rx="128" ry="38" fill="#000" opacity=".5" filter="url(#blur6)"/>
-      <path class="neon" d="M29 80 L141.6 15 L262.6 85 L262.6 255 L150 320 L29 250 Z"/>
-
-      <!-- LEFT FACE: LCD, slot, recycle logo -->
-      <g transform="matrix(.866 .5 0 1 29 80)">
-        <rect width="140" height="170" fill="url(#gSteelL)"/>
-        <ellipse cx="30" cy="120" rx="34" ry="26" fill="#fff" opacity=".07" filter="url(#blur6)"/>
-        <ellipse cx="108" cy="60" rx="22" ry="30" fill="#000" opacity=".06" filter="url(#blur6)"/>
-        <rect x="20" y="14" width="80" height="30" rx="2" fill="#0a0e17"/>
-        <rect x="23" y="17" width="74" height="24" rx="1" fill="#2a5fd6"/>
-        <text id="lcd1" x="25" y="26.5" textLength="70" lengthAdjust="spacingAndGlyphs" font-size="9" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700" fill="#e6f2ff">Starting...</text>
-        <rect x="26" y="30.5" width="68" height="7" fill="#1c43a3"/>
-        <rect id="lcdbar" x="26" y="30.5" width="0" height="7" fill="#e6f2ff" style="transition:width .6s"/>
-        <rect x="8" y="53" width="112" height="2" fill="#0d1119"/>
-        <rect x="8" y="55" width="112" height="1" fill="#fff" opacity=".28"/>
-        <use href="#recycle" x="36" y="80" width="84" height="84" color="#0a2a12" opacity=".55"/>
-        <use href="#recycle" x="33" y="77" width="84" height="84" color="#1fa245" class="glowsym"/>
-      </g>
-
-      <!-- RIGHT FACE: slot + open service window showing the live fill level -->
-      <g transform="matrix(.866 -.5 0 1 150 150)">
-        <rect width="130" height="170" fill="url(#gSteelR)"/>
-        <ellipse cx="100" cy="150" rx="30" ry="22" fill="#fff" opacity=".05" filter="url(#blur6)"/>
-        <rect id="slitR" class="slit" x="22" y="17" width="86" height="2.4" fill="#0a0d13"/>
-        <rect x="22" y="19.4" width="86" height="1" fill="#fff" opacity=".22"/>
-        <rect x="9" y="37" width="112" height="126" fill="#a4acb8"/>
-        <rect x="12" y="40" width="106" height="120" fill="url(#gIn)"/>
-        <g clip-path="url(#winclip)">
-          <rect x="62" y="40" width="1.5" height="120" fill="#000" opacity=".35"/>
-          <polygon id="cone" class="cone" points="56,56 74,56 90,150 40,150"/>
-          <path id="beam" class="beam" d="M65 56 V150"/>
-          <rect x="38" y="40" width="54" height="16" rx="2" fill="#1b5fa8"/>
-          <circle cx="51" cy="48" r="5.5" fill="#cfd4dc" stroke="#3b4350" stroke-width="1"/><circle cx="51" cy="48" r="2.6" fill="#4a5260"/>
-          <circle cx="79" cy="48" r="5.5" fill="#cfd4dc" stroke="#3b4350" stroke-width="1"/><circle cx="79" cy="48" r="2.6" fill="#4a5260"/>
-          <g id="trash" class="trash" style="transform:translateY(116px)">
-            <g class="wavemove"><path d="M-20 44 q8 -5 16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 V230 H-20 Z" fill="url(#gTrash)"/></g>
-            <g id="bits"></g>
-          </g>
-          <g id="itemdrop" class="itemdrop"><rect x="58" y="42" width="15" height="10" rx="2" fill="#ffd36b" stroke="#a87a1e" stroke-width="1"/></g>
-        </g>
-        <rect x="12" y="40" width="106" height="9" fill="#000" opacity=".28"/>
-      </g>
-
-      <!-- TOP: laser-cut plate, MDF strips, green acrylic recycle symbol -->
-      <g transform="matrix(.866 .5 .866 -.5 29 80)">
-        <rect width="140" height="130" fill="url(#gTop)"/>
-        <g fill="#c9a36b" stroke="#8a6736" stroke-width=".8">
-          <rect x="10" y="8" width="92" height="8"/><rect x="124" y="10" width="8" height="92"/>
-          <rect x="38" y="114" width="92" height="8"/><rect x="8" y="28" width="8" height="92"/>
-        </g>
-        <use href="#recycle" x="27" y="23" width="88" height="88" color="#0a2a12" opacity=".6"/>
-        <use href="#recycle" x="26" y="22" width="88" height="88" color="#27ad4d" class="glowsym"/>
-      </g>
-
-      <g fill="none" stroke-linejoin="round">
-        <path class="edge" d="M150 150 V320 M29 80 L150 150 L262.6 85"/>
-        <path class="outline" d="M29 80 L141.6 15 L262.6 85 L262.6 255 L150 320 L29 250 Z"/>
-      </g>
-    </svg>
-    <div class="pctbig"><span id="pct">0</span><small>%</small></div>
-    <div class="neonrow"><span>NEON</span><div class="tube" id="tube"></div><b id="neonTxt">OFF</b></div>
+  <section class="k-hide noprint">
+    <div class="lbl"><svg class="ic"><use href="#i-grid"/></svg><span data-i18n="myBins">My bins</span></div>
+    <div class="fleet" id="fleet"></div>
   </section>
 
-  <div class="c-main">
-    <section class="panel glow">
-      <div class="lbl">Status</div>
-      <h1 class="headline" id="headline">ALL CLEAR</h1>
-      <p class="sub" id="sub">Plenty of space left.</p>
-      <div class="stats">
-        <div class="stat"><b id="dist">–</b><span>Distance cm</span></div>
-        <div class="stat"><b id="today">0</b><span>Items today</span></div>
-        <div class="stat"><b id="total">0</b><span>Items total</span></div>
-        <div class="stat"><b id="last">–</b><span>Last item</span></div>
-      </div>
-    </section>
-    <section class="panel">
-      <div class="lbl">Live fill history</div>
-      <canvas id="chart"></canvas>
-    </section>
-  </div>
+  <main class="grid">
+    <!-- hero -->
+    <section class="card glow hero c-bin" id="hero">
+      <canvas id="fx" aria-hidden="true"></canvas>
+      <div class="lbl rel"><svg class="ic"><use href="#i-bin"/></svg><span data-i18n="fillLevel">Fill level</span><span class="sp"></span><span class="pill" id="binName"></span><span class="pill demo" id="demoBadge" data-i18n="demoBadge" hidden>DEMO</span></div>
+      <div class="binwrap rel">
+<svg id="binsvg" viewBox="0 0 292 345" style="--c:#2cf5c0" role="img" aria-label="Smart bin with live fill level">
+  <defs>
+    <linearGradient id="gSteelL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b3bbc7"/><stop offset="1" stop-color="#7a8391"/></linearGradient>
+    <linearGradient id="gSteelR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#808896"/><stop offset="1" stop-color="#535b69"/></linearGradient>
+    <linearGradient id="gTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#dcae9a"/><stop offset="1" stop-color="#b98a79"/></linearGradient>
+    <linearGradient id="gIn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#150f0b"/><stop offset="1" stop-color="#2e2119"/></linearGradient>
+    <linearGradient id="gTrash" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--c);stop-opacity:.95"/><stop offset="1" style="stop-color:var(--c);stop-opacity:.4"/></linearGradient>
+    <linearGradient id="gSheen" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".4"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <clipPath id="winclip"><rect x="12" y="40" width="106" height="120"/></clipPath>
+    <clipPath id="clipL"><rect width="140" height="170"/></clipPath>
+    <clipPath id="clipR"><rect width="130" height="170"/></clipPath>
+    <clipPath id="clipT"><rect width="140" height="130"/></clipPath>
+    <filter id="blur6" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>
+    <filter id="blur3" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter>
+    <g id="arr">
+      <path d="M-19.05 -7 L0 -40 L4.85 -31.9" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round"/>
+      <polygon points="15.24,-37.9 -5.54,-25.9 10.85,-21.5" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    </g>
+    <symbol id="recycle" viewBox="-52 -52 104 104"><use href="#arr"/><use href="#arr" transform="rotate(120)"/><use href="#arr" transform="rotate(240)"/></symbol>
+  </defs>
 
-  <section class="panel c-loc">
-    <div class="lbl">Bin location</div>
-    <div class="locgrid">
-      <div class="mapbox">
-        <iframe id="map" title="Bin location map" loading="lazy" referrerpolicy="no-referrer" style="display:none"></iframe>
-        <div class="nomap" id="nomap">📍 Location not set<br>Add coordinates →</div>
+  <ellipse class="shadow" cx="146" cy="300" rx="128" ry="36" fill="#000" opacity=".5" filter="url(#blur6)"/>
+  <g class="rings"><ellipse cx="146" cy="294" rx="64" ry="22"/><ellipse cx="146" cy="294" rx="64" ry="22"/><ellipse cx="146" cy="294" rx="64" ry="22"/></g>
+
+  <g class="float"><g class="shake">
+    <path class="neon" d="M29 80 L141.6 15 L262.6 85 L262.6 255 L150 320 L29 250 Z"/>
+
+    <!-- LEFT FACE: LCD, slot, recycle logo -->
+    <g transform="matrix(.866 .5 0 1 29 80)">
+      <rect width="140" height="170" fill="url(#gSteelL)"/>
+      <ellipse cx="30" cy="120" rx="34" ry="26" fill="#fff" opacity=".07" filter="url(#blur6)"/>
+      <ellipse cx="108" cy="60" rx="22" ry="30" fill="#000" opacity=".06" filter="url(#blur6)"/>
+      <rect x="16" y="11" width="88" height="36" rx="4" fill="#2a5fd6" opacity=".45" filter="url(#blur6)"/>
+      <rect x="20" y="14" width="80" height="30" rx="2" fill="#0a0e17"/>
+      <rect x="23" y="17" width="74" height="24" rx="1" fill="#2a5fd6"/>
+      <text id="lcd1" x="25" y="26.5" textLength="70" lengthAdjust="spacingAndGlyphs" font-size="9" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700" fill="#e6f2ff">Starting...</text>
+      <rect x="26" y="30.5" width="68" height="7" fill="#1c43a3"/>
+      <rect id="lcdbar" x="26" y="30.5" width="0" height="7" fill="#e6f2ff" style="transition:width .6s"/>
+      <rect x="8" y="53" width="112" height="2" fill="#0d1119"/>
+      <rect x="8" y="55" width="112" height="1" fill="#fff" opacity=".28"/>
+      <use href="#recycle" x="36" y="80" width="84" height="84" color="#0a2a12" opacity=".55"/>
+      <use href="#recycle" x="33" y="77" width="84" height="84" color="#1fa245" class="glowsym"/>
+      <g clip-path="url(#clipL)"><g transform="skewX(-18)"><rect class="sheen" x="-70" y="-10" width="46" height="190" fill="url(#gSheen)"/></g></g>
+    </g>
+
+    <!-- RIGHT FACE: slot + open service window showing the live fill level -->
+    <g transform="matrix(.866 -.5 0 1 150 150)">
+      <rect width="130" height="170" fill="url(#gSteelR)"/>
+      <ellipse cx="100" cy="150" rx="30" ry="22" fill="#fff" opacity=".05" filter="url(#blur6)"/>
+      <rect id="slitR" class="slit" x="22" y="17" width="86" height="2.4" fill="#0a0d13"/>
+      <rect x="22" y="19.4" width="86" height="1" fill="#fff" opacity=".22"/>
+      <rect x="9" y="37" width="112" height="126" fill="#a4acb8"/>
+      <rect x="12" y="40" width="106" height="120" fill="url(#gIn)"/>
+      <g clip-path="url(#winclip)">
+        <rect x="62" y="40" width="1.5" height="120" fill="#000" opacity=".35"/>
+        <polygon id="cone" class="cone" points="56,56 74,56 90,150 40,150"/>
+        <path id="beam" class="beam" d="M65 56 V150"/>
+        <g id="ripples" style="--rd:80px"><ellipse class="rip" cx="65" cy="58" rx="9" ry="3.2"/><ellipse class="rip" cx="65" cy="58" rx="9" ry="3.2"/><ellipse class="rip" cx="65" cy="58" rx="9" ry="3.2"/></g>
+        <rect x="38" y="40" width="54" height="16" rx="2" fill="#1b5fa8"/>
+        <circle cx="51" cy="48" r="5.5" fill="#cfd4dc" stroke="#3b4350" stroke-width="1"/><circle cx="51" cy="48" r="2.6" fill="#4a5260"/>
+        <circle cx="79" cy="48" r="5.5" fill="#cfd4dc" stroke="#3b4350" stroke-width="1"/><circle cx="79" cy="48" r="2.6" fill="#4a5260"/>
+        <g id="trash" class="trash" style="transform:translateY(116px)">
+          <g class="wavemove2" opacity=".35"><path d="M-20 41 q8 -5 16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 V230 H-20 Z" fill="#fff"/></g>
+          <g class="wavemove"><path d="M-20 44 q8 -5 16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 V230 H-20 Z" fill="url(#gTrash)"/></g>
+          <g id="bits"></g>
+        </g>
+        <g id="itemdrop" class="itemdrop"><rect x="58" y="42" width="15" height="10" rx="2" fill="#ffd36b" stroke="#a87a1e" stroke-width="1"/></g>
+        <g id="fxWin"></g>
+      </g>
+      <rect x="12" y="40" width="106" height="9" fill="#000" opacity=".28"/>
+      <g clip-path="url(#clipR)"><g transform="skewX(18)"><rect class="sheen" x="-70" y="-10" width="40" height="190" fill="url(#gSheen)" style="animation-delay:.6s"/></g></g>
+    </g>
+
+    <!-- TOP: laser-cut plate, MDF strips, green acrylic recycle symbol -->
+    <g transform="matrix(.866 .5 .866 -.5 29 80)">
+      <rect width="140" height="130" fill="url(#gTop)"/>
+      <g fill="#c9a36b" stroke="#8a6736" stroke-width=".8">
+        <rect x="10" y="8" width="92" height="8"/><rect x="124" y="10" width="8" height="92"/>
+        <rect x="38" y="114" width="92" height="8"/><rect x="8" y="28" width="8" height="92"/>
+      </g>
+      <use href="#recycle" x="26" y="22" width="88" height="88" color="#3dff7a" filter="url(#blur3)" opacity=".6" class="backlit"/>
+      <use href="#recycle" x="27" y="23" width="88" height="88" color="#0a2a12" opacity=".6"/>
+      <use href="#recycle" x="26" y="22" width="88" height="88" color="#27ad4d" class="glowsym"/>
+      <g clip-path="url(#clipT)"><g transform="skewX(-18)"><rect class="sheen" x="-70" y="-10" width="46" height="150" fill="url(#gSheen)" style="animation-delay:1.2s"/></g></g>
+    </g>
+
+    <g fill="none" stroke-linejoin="round">
+      <path class="edge" d="M150 150 V320 M29 80 L150 150 L262.6 85"/>
+      <path class="outline" d="M29 80 L141.6 15 L262.6 85 L262.6 255 L150 320 L29 250 Z"/>
+    </g>
+    <g id="fxTop"></g>
+  </g></g>
+</svg>
       </div>
-      <div class="locform">
-        <label>Name<input id="locName" placeholder="e.g. Front gate, Lab corridor"></label>
-        <div class="two">
-          <label>Latitude<input id="locLat" inputmode="decimal" placeholder="40.4093"></label>
-          <label>Longitude<input id="locLng" inputmode="decimal" placeholder="49.8671"></label>
+      <div class="pctrow rel"><div class="pctbig"><span id="pct">0</span><small>%</small></div></div>
+      <div class="segwrap rel"><div class="seg" id="seg"></div><div class="mk" id="mkWarn"><span id="mkWarnT"></span></div><div class="mk full" id="mkFull" style="left:90%"><span>90</span></div></div>
+      <div class="neonrow rel"><span data-i18n="neon">NEON</span><div class="tube" id="tube"></div><b id="neonTxt">OFF</b></div>
+      <div class="democtl rel noprint" id="demoCtl" hidden>
+        <div class="row">
+          <button class="btn" id="dThrow"><span data-i18n="dThrow">Throw item</span></button>
+          <button class="btn" id="dFill"><span data-i18n="dFill">Fill to 90%</span></button>
+          <button class="btn" id="dEmpty"><span data-i18n="dEmpty">Empty bin</span></button>
+          <button class="btn" id="dPause"><span id="dPauseT" data-i18n="dPause">Pause</span></button>
         </div>
-        <div class="btns"><button id="btnGeo">Use my location</button><button id="btnSaveLoc" class="primary">Save</button></div>
-        <a id="mapsLink" href="#" target="_blank" rel="noopener" style="display:none">Open in Google Maps ↗</a>
-        <div class="hint" id="locHint">Saved in this browser. You can also set BIN_NAME / BIN_LAT / BIN_LNG in the firmware.</div>
+        <p data-i18n="demoNote">Demo data — add your ESP32 to see your real bin.</p>
       </div>
-    </div>
-  </section>
-
-  <div class="c-side">
-    <section class="panel">
-      <div class="lbl">Alerts</div>
-      <div class="row"><span>Browser notification</span><button id="btnNotif">Enable</button></div>
-      <div class="row"><span>Alert sound</span><button id="btnSound">On</button></div>
-      <div class="row"><span>Preview the alert</span><button id="btnTest">Test</button></div>
-      <div class="hint" style="margin-top:8px">When the bin gets full this page shows a banner, beeps, vibrates and flashes the tab title. For phone alerts when this page is closed, set <b>NTFY_TOPIC</b> in the firmware and subscribe in the free ntfy app.</div>
     </section>
-    <section class="panel">
-      <div class="lbl">Items per hour · last 12 h</div>
-      <div class="bars" id="bars"></div>
-    </section>
-  </div>
 
-  <section class="panel c-log">
-    <div class="logrow">
-      <div class="lbl" style="margin:0">Saved events</div>
-      <div><button id="btnCsv">Download CSV</button> <button id="btnClear">Clear data</button></div>
+    <div class="c-main">
+      <section class="card glow" id="statusCard">
+        <div class="lbl"><svg class="ic"><use href="#i-act"/></svg><span data-i18n="status">Status</span><span class="sp"></span><span class="upd" id="updTxt"></span></div>
+        <h1 class="headline" id="headline">…</h1>
+        <p class="sub" id="sub"></p>
+        <div class="kpis">
+          <div class="kpi"><b id="kDist">–</b><span data-i18n="distance">Distance (cm)</span></div>
+          <div class="kpi"><b id="kToday">–</b><span data-i18n="today">Items today</span></div>
+          <div class="kpi"><b id="kTotal">–</b><span data-i18n="total">Items total</span></div>
+          <div class="kpi"><b id="kLast">–</b><span data-i18n="lastItem">Last item</span></div>
+          <div class="kpi"><b id="kRate">–</b><span data-i18n="rate">Fill rate</span></div>
+          <div class="kpi"><b id="kEta">–</b><span data-i18n="eta">Time to full</span></div>
+          <div class="kpi"><b id="kAvg">–</b><span data-i18n="avgFill">Avg. time to fill</span></div>
+          <div class="kpi"><b id="kEmpty">–</b><span data-i18n="lastEmpty">Last emptied</span></div>
+        </div>
+      </section>
+      <section class="card k-hide">
+        <div class="lbl"><svg class="ic"><use href="#i-clock"/></svg><span data-i18n="history">Fill history</span><span class="sp"></span>
+          <div class="rng" id="rng"><button data-r="3600">1h</button><button data-r="21600">6h</button><button data-r="86400">24h</button><button data-r="604800">7d</button></div></div>
+        <div class="chartbox"><canvas id="chart"></canvas><div class="tip" id="tip"></div></div>
+        <div class="legend"><span><i style="background:var(--full)"></i><span data-i18n="legendFull">Full</span></span><span><i style="background:var(--blue)"></i><span data-i18n="legendEmpty">Emptied</span></span><span><i style="background:var(--warn)"></i><span data-i18n="legendWarn">Warning level</span></span></div>
+      </section>
     </div>
-    <table>
-      <thead><tr><th>Time</th><th>Event</th><th>Fill</th><th>Distance</th></tr></thead>
-      <tbody id="log"></tbody>
-    </table>
-    <div class="empty" id="noLog" style="display:none">No events saved yet.</div>
-  </section>
+
+    <section class="card c-week k-hide">
+      <div class="lbl"><svg class="ic"><use href="#i-cal"/></svg><span data-i18n="weekly">Weekly activity</span><span class="sp"></span><span class="upd" id="wkTotal"></span></div>
+      <div class="wk" id="wk"></div>
+    </section>
+    <section class="card c-heat k-hide">
+      <div class="lbl"><svg class="ic"><use href="#i-clock"/></svg><span data-i18n="busy">Busy hours</span><span class="sp"></span><span class="upd" id="busyTxt"></span></div>
+      <div class="heat" id="heat"></div>
+      <div class="heatleg"><span data-i18n="less">less</span><i style="--v:0"></i><i style="--v:.25"></i><i style="--v:.5"></i><i style="--v:.75"></i><i style="--v:1"></i><span data-i18n="more">more</span></div>
+    </section>
+
+    <section class="card c-loc k-hide">
+      <div class="lbl"><svg class="ic"><use href="#i-pin"/></svg><span data-i18n="location">Bin location</span></div>
+      <div class="locgrid">
+        <div class="mapbox">
+          <iframe id="map" title="Bin location map" loading="lazy" referrerpolicy="no-referrer" hidden></iframe>
+          <div class="nomap" id="nomap"><span data-i18n="locNotSet">Location not set</span></div>
+        </div>
+        <div class="locform noprint">
+          <label><span data-i18n="locName">Name</span><input id="locName" data-i18n-ph="locNamePh" placeholder="e.g. Front gate"></label>
+          <div class="two">
+            <label><span data-i18n="lat">Latitude</span><input id="locLat" class="ltr" inputmode="decimal" placeholder="34.5281"></label>
+            <label><span data-i18n="lng">Longitude</span><input id="locLng" class="ltr" inputmode="decimal" placeholder="69.1723"></label>
+          </div>
+          <div class="btns"><button class="btn" id="btnGeo"><svg class="ic"><use href="#i-pin"/></svg><span data-i18n="useMy">Use my location</span></button><button class="btn pri" id="btnSaveLoc" data-i18n="save">Save</button></div>
+          <div class="btns"><a id="mapsLink" href="#" target="_blank" rel="noopener" hidden data-i18n="openMaps">Open in Google Maps</a><a id="dirLink" href="#" target="_blank" rel="noopener" hidden data-i18n="directions">Directions</a></div>
+          <div class="hint" id="locHint"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card c-set k-hide noprint">
+      <div class="lbl"><svg class="ic"><use href="#i-sliders"/></svg><span data-i18n="alerts">Alerts &amp; settings</span></div>
+      <div class="setrow"><span data-i18n="notif">Browser notification</span><button class="btn" id="btnNotif">…</button></div>
+      <div class="setrow"><span data-i18n="sound">Alert sound</span><label class="sw"><input type="checkbox" id="cSound"><i></i></label></div>
+      <div class="setrow"><span data-i18n="voice">Voice announcement</span><label class="sw"><input type="checkbox" id="cVoice"><i></i></label></div>
+      <div class="setrow"><span data-i18n="vibrate">Vibration</span><label class="sw"><input type="checkbox" id="cVibe"><i></i></label></div>
+      <div class="setrow"><span data-i18n="offlineAlert">Alert if the bin goes offline</span><label class="sw"><input type="checkbox" id="cOff"><i></i></label></div>
+      <div class="setrow col"><div class="rowtop"><span id="warnLbl"></span><label class="sw"><input type="checkbox" id="cWarnOn"><i></i></label></div><input type="range" id="cWarn" min="50" max="89" step="1"></div>
+      <div class="btns" style="margin-top:12px"><button class="btn pri" id="btnTest"><svg class="ic"><use href="#i-bell"/></svg><span data-i18n="testAlert">Test alert</span></button></div>
+      <p class="hint" data-i18n="alertNote">When the bin gets full this page shows a banner, beeps, vibrates and flashes the tab title. For phone alerts when this page is closed, set NTFY_TOPIC in the firmware and subscribe in the free ntfy app.</p>
+    </section>
+
+    <section class="card c-log k-hide">
+      <div class="logrow">
+        <div class="lbl" style="margin:0"><svg class="ic"><use href="#i-list"/></svg><span data-i18n="events">Saved events</span></div>
+        <div class="btns noprint"><button class="btn" id="btnCsv"><svg class="ic"><use href="#i-dl"/></svg><span data-i18n="csv">Download CSV</span></button><button class="btn danger" id="btnClear" data-i18n="clear">Clear data</button></div>
+      </div>
+      <div class="chips noprint" id="evFilters"></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th data-i18n="colTime">Time</th><th data-i18n="colEvent">Event</th><th data-i18n="colFill">Fill</th><th data-i18n="colDist">Distance</th></tr></thead>
+        <tbody id="log"></tbody>
+      </table></div>
+      <div class="empty" id="noLog" hidden data-i18n="noEvents">No events saved yet.</div>
+      <div class="center noprint"><button class="btn" id="btnMore" hidden data-i18n="showMore">Show more</button></div>
+    </section>
+  </main>
+  <footer class="noprint">SMART//BIN · ESP32 + HC-SR04</footer>
 </div>
-</div>
+
+<dialog id="dlgBin">
+  <form id="frmBin">
+    <h3 id="dlgTitle"></h3>
+    <label class="fld"><span data-i18n="fName">Name</span><input id="fName" maxlength="40"></label>
+    <label class="fld"><span data-i18n="fAddr">Device address</span><input id="fAddr" class="ltr" data-i18n-ph="fAddrPh" placeholder="192.168.1.50 or smartbin.local" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
+    <p class="hint" data-i18n="fAddrHint" style="margin:0 0 10px">IP shown on the LCD / Serial Monitor.</p>
+    <div class="msg" id="fMsg"></div>
+    <div class="btns" style="margin-top:12px">
+      <button type="button" class="btn" id="btnTestConn" data-i18n="test">Test connection</button>
+      <button type="button" class="btn danger" id="btnDel" data-i18n="remove" hidden>Remove</button>
+      <span class="sp"></span>
+      <button type="button" class="btn" id="btnCancel" data-i18n="cancel">Cancel</button>
+      <button type="submit" class="btn pri" id="btnSaveBin" data-i18n="save">Save</button>
+    </div>
+  </form>
+</dialog>
+<div id="toasts" aria-live="polite"></div>
+<noscript><p style="padding:20px">This dashboard needs JavaScript.</p></noscript>
 
 <script>
+'use strict';
+/* =====================================================================
+   SMART//BIN dashboard — talks to the ESP32 (/api/status, /log.csv, /api/clear).
+   Nothing here changes the firmware API. With no ESP32 saved it runs on demo bins.
+   ===================================================================== */
 const $=id=>document.getElementById(id);
-const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-let base=store.get('binBase')||'';
-let demo=false,everOk=false,fails=0,S=null,hist=[],events=[],prevFull=null,prevTotal=null;
-let soundOn=store.get('binSound')!=='0';
-let loc=null;try{loc=JSON.parse(store.get('binLoc')||'null')}catch(e){}
-let mapKey='',locFilled=false;
-$('ip').value=base.replace(/^https?:\/\//,'');
+const $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
+const store={
+  get(k){try{return localStorage.getItem(k)}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,v)}catch(e){}},
+  json(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+  setJson(k,v){this.set(k,JSON.stringify(v))}
+};
+const pad=n=>String(n).padStart(2,'0');
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const reduce=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+const MONO="'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace";
+const bcss=n=>getComputedStyle(document.body).getPropertyValue(n).trim();
+const NB=' ';
 
-/* ---------- Demo data (used when no ESP32 is reachable) ---------- */
-const D={fill:22,full:false,today:3,total:41,depth:40,last:0,log:[]};
-(function seed(){const now=Date.now()/1000|0;for(let i=0;i<26;i++)D.log.push([now-Math.floor(Math.random()*11.5*3600),'item',20,'30.0']);D.log.sort((a,b)=>a[0]-b[0]);})();
-function dd(){return (D.depth-(D.depth-5)*D.fill/100).toFixed(1);}
-function demoStep(){
-  const now=Date.now()/1000|0;
-  if(Math.random()<.22){D.fill=Math.min(100,D.fill+3+Math.random()*6);D.today++;D.total++;D.last=now;D.log.push([now,'item',D.fill|0,dd()]);}
-  if(!D.full&&D.fill>=90){D.full=true;D.log.push([now,'full',D.fill|0,dd()]);}
-  if(D.full&&Math.random()<.1){D.fill=4;D.full=false;D.log.push([now,'emptied',4,dd()]);}
-  D.log=D.log.slice(-120);
-  return {ok:true,distance:+dd(),fill:D.fill|0,full:D.full,neon:D.full,today:D.today,total:D.total,t:now,depth:D.depth,last:D.last,name:'Demo bin',lat:0,lng:0};
+/* ---------------------------- translations ---------------------------- */
+const I18N={
+en:{
+  u:{s:'s',m:'m',h:'h',d:'d'},
+  title:'Smart Bin',myBins:'My bins',fillLevel:'Fill level',status:'Status',history:'Fill history',weekly:'Weekly activity',busy:'Busy hours',
+  location:'Bin location',alerts:'Alerts & settings',events:'Saved events',
+  ok:'ALL CLEAR',okSub:'Plenty of space left.',warn:'FILLING UP',warnSub:'Getting close — plan to empty it soon.',full:'BIN FULL',fullSub:'The neon is on. Please empty the bin.',
+  off:'OFFLINE',offSub:'No connection to the device.',conn:'CONNECTING',connSub:'Looking for your bin…',
+  live:'LIVE',demoMode:'DEMO MODE',offlineChip:'OFFLINE · retrying…',blocked:'BLOCKED · https pages cannot read http devices',
+  distance:'Distance (cm)',today:'Items today',total:'Items total',lastItem:'Last item',rate:'Fill rate',eta:'Time to full',avgFill:'Avg. time to fill',lastEmpty:'Last emptied',
+  perHour:' %/h',ago:'{0} ago',justNow:'just now',updated:'updated {0}',
+  legendFull:'Full',legendEmpty:'Emptied',legendWarn:'Warning level',
+  total7:'{0} items this week',busiest:'Busiest: {0}',needClock:'Real-time clock needed — the ESP32 gets it from WiFi (NTP).',less:'less',more:'more',noData:'No data yet',
+  locName:'Name',locNamePh:'e.g. Front gate',lat:'Latitude',lng:'Longitude',useMy:'Use my location',save:'Save',openMaps:'Open in Google Maps',directions:'Directions',
+  locNotSet:'Location not set — add coordinates →',locHint:'Saved in this browser. You can also set BIN_NAME / BIN_LAT / BIN_LNG in the firmware.',
+  locSaved:'Location saved.',locBad:'Enter a valid latitude (−90…90) and longitude (−180…180).',locGetting:'Getting your location…',
+  locGot:'Got it — press Save. (Stand next to the bin for best accuracy.)',locFail:'Could not get the location. Allow location access, or type the coordinates (location needs https).',
+  notif:'Browser notification',enable:'Enable',enabled:'Enabled ✓',blockedBtn:'Blocked',notSupported:'Not supported',sound:'Alert sound',voice:'Voice announcement',vibrate:'Vibration',
+  offlineAlert:'Alert if the bin goes offline',warnAt:'Early warning at {0}%',testAlert:'Test alert',
+  alertNote:'When the bin gets full this page shows a banner, beeps, vibrates and flashes the tab title. For phone alerts when this page is closed, set NTFY_TOPIC in the firmware and subscribe in the free ntfy app.',
+  fAll:'All',fItem:'Items',fFull:'Full',fEmptied:'Emptied',fBoot:'Starts',colTime:'Time',colEvent:'Event',colFill:'Fill',colDist:'Distance',showMore:'Show more',noEvents:'No events saved yet.',
+  evItem:'Item thrown in',evFull:'Bin FULL · neon ON',evEmptied:'Bin emptied',evBoot:'Device started',uptime:'uptime',
+  csv:'Download CSV',clear:'Clear data',confirmClear:'Delete all saved data on this bin?',print:'Print report',kiosk:'Kiosk / fullscreen',exitKiosk:'Exit',
+  alertFull:'{0} is {1}% full. Please empty it.',alertWarn:'{0} is {1}% full — getting close.',alertOffline:'{0} lost connection.',backOnline:'{0} is back online.',
+  emptiedMsg:'{0} was emptied. Thank you!',testMsg:'TEST · {0} is {1}% full.',dismiss:'Dismiss',
+  dlgAdd:'Add a bin',dlgEdit:'Edit bin',fName:'Name',fAddr:'Device address',fAddrPh:'192.168.1.50 or smartbin.local',
+  fAddrHint:'The IP is shown on the bin’s LCD and in the Serial Monitor. Leave it empty to use the device that serves this page.',
+  test:'Test connection',testing:'Testing…',testOk:'Connected ✓ — fill {0}%',testFail:'Could not reach the device.',
+  testMixed:'This page is https and browsers block http devices. Open the dashboard from your computer or from the ESP32 itself.',
+  remove:'Remove',cancel:'Cancel',confirmRemove:'Remove this bin from the dashboard?',needName:'Give the bin a name.',addBin:'Add bin',
+  demoBadge:'DEMO',demoNote:'Demo data — add your ESP32 to see your real bin.',dThrow:'Throw item',dFill:'Fill to 90%',dEmpty:'Empty bin',dPause:'Pause',dPlay:'Resume',
+  neon:'NEON',on:'ON',offTxt:'OFF',connected:'Connected to {0}.',cleared:'Data cleared.',saved:'Saved.',bins:'bins'
+},
+fa:{
+  u:{s:' ثانیه',m:' دقیقه',h:' ساعت',d:' روز'},
+  title:'سطل هوشمند',myBins:'سطل‌های من',fillLevel:'سطح پُری',status:'وضعیت',history:'تاریخچهٔ پُری',weekly:'فعالیت هفتگی',busy:'ساعت‌های شلوغ',
+  location:'موقعیت سطل',alerts:'هشدارها و تنظیمات',events:'رویدادهای ذخیره‌شده',
+  ok:'همه‌چیز عالی',okSub:'فضای کافی باقی مانده است.',warn:'در حال پُر شدن',warnSub:'نزدیک پُر شدن است؛ به‌زودی خالی کنید.',full:'سطل پُر است',fullSub:'نئون روشن است. لطفاً سطل را خالی کنید.',
+  off:'آفلاین',offSub:'ارتباط با دستگاه برقرار نیست.',conn:'در حال اتصال',connSub:'در جستجوی سطل شما…',
+  live:'زنده',demoMode:'حالت نمایشی',offlineChip:'آفلاین · تلاش دوباره…',blocked:'مسدود · صفحه‌های https به دستگاه‌های http دسترسی ندارند',
+  distance:'فاصله (سانتی‌متر)',today:'موارد امروز',total:'مجموع موارد',lastItem:'آخرین مورد',rate:'سرعت پُر شدن',eta:'زمان تا پُر شدن',avgFill:'میانگین زمان پُر شدن',lastEmpty:'آخرین خالی‌سازی',
+  perHour:' %/ساعت',ago:'{0} پیش',justNow:'همین حالا',updated:'به‌روزرسانی: {0}',
+  legendFull:'پُر',legendEmpty:'خالی شد',legendWarn:'سطح هشدار',
+  total7:'{0} مورد در این هفته',busiest:'شلوغ‌ترین: {0}',needClock:'ساعت واقعی لازم است؛ ESP32 آن را از وای‌فای می‌گیرد (NTP).',less:'کم',more:'زیاد',noData:'هنوز داده‌ای نیست',
+  locName:'نام',locNamePh:'مثلاً دروازهٔ اصلی',lat:'عرض جغرافیایی',lng:'طول جغرافیایی',useMy:'موقعیت من',save:'ذخیره',openMaps:'باز کردن در Google Maps',directions:'مسیریابی',
+  locNotSet:'موقعیت تنظیم نشده — مختصات را وارد کنید ←',locHint:'در همین مرورگر ذخیره می‌شود. می‌توانید BIN_NAME / BIN_LAT / BIN_LNG را هم در برنامهٔ ESP32 تنظیم کنید.',
+  locSaved:'موقعیت ذخیره شد.',locBad:'عرض (−90 تا 90) و طول (−180 تا 180) معتبر وارد کنید.',locGetting:'در حال دریافت موقعیت شما…',
+  locGot:'دریافت شد — روی ذخیره بزنید. (برای دقت بیشتر کنار سطل بایستید.)',locFail:'موقعیت دریافت نشد. اجازهٔ دسترسی بدهید یا مختصات را بنویسید (موقعیت‌یابی به https نیاز دارد).',
+  notif:'اعلان مرورگر',enable:'فعال‌سازی',enabled:'فعال ✓',blockedBtn:'مسدود',notSupported:'پشتیبانی نمی‌شود',sound:'صدای هشدار',voice:'اعلان صوتی',vibrate:'لرزش',
+  offlineAlert:'هشدار قطع ارتباط سطل',warnAt:'هشدار زودهنگام در {0}%',testAlert:'آزمایش هشدار',
+  alertNote:'وقتی سطل پُر شود، این صفحه بنر نشان می‌دهد، بوق می‌زند، می‌لرزد و عنوان تب چشمک می‌زند. برای هشدار روی موبایل (حتی وقتی صفحه بسته است) NTFY_TOPIC را در برنامهٔ ESP32 تنظیم کنید و در برنامهٔ رایگان ntfy مشترک شوید.',
+  fAll:'همه',fItem:'موارد',fFull:'پُر',fEmptied:'خالی‌شده',fBoot:'روشن شدن',colTime:'زمان',colEvent:'رویداد',colFill:'پُری',colDist:'فاصله',showMore:'نمایش بیشتر',noEvents:'هنوز رویدادی ذخیره نشده است.',
+  evItem:'زباله انداخته شد',evFull:'سطل پُر شد · نئون روشن',evEmptied:'سطل خالی شد',evBoot:'دستگاه روشن شد',uptime:'زمان روشن بودن',
+  csv:'دانلود CSV',clear:'پاک‌کردن داده‌ها',confirmClear:'همهٔ داده‌های ذخیره‌شدهٔ این سطل پاک شود؟',print:'چاپ گزارش',kiosk:'نمایش تمام‌صفحه',exitKiosk:'خروج',
+  alertFull:'{0} به {1}% پُر شده است. لطفاً خالی کنید.',alertWarn:'{0} به {1}% رسیده — نزدیک پُر شدن است.',alertOffline:'ارتباط {0} قطع شد.',backOnline:'{0} دوباره آنلاین شد.',
+  emptiedMsg:'{0} خالی شد. ممنون!',testMsg:'آزمایش · {0} به {1}% پُر شده است.',dismiss:'بستن',
+  dlgAdd:'افزودن سطل',dlgEdit:'ویرایش سطل',fName:'نام',fAddr:'نشانی دستگاه',fAddrPh:'192.168.1.50 یا smartbin.local',
+  fAddrHint:'IP روی LCD سطل و در Serial Monitor نمایش داده می‌شود. اگر خالی بگذارید، از دستگاهی که این صفحه را ارائه می‌دهد استفاده می‌شود.',
+  test:'آزمایش اتصال',testing:'در حال آزمایش…',testOk:'متصل شد ✓ — پُری {0}%',testFail:'دسترسی به دستگاه ممکن نشد.',
+  testMixed:'این صفحه با https باز شده و مرورگرها دستگاه‌های http را مسدود می‌کنند. داشبورد را از کامپیوتر یا از خود ESP32 باز کنید.',
+  remove:'حذف',cancel:'انصراف',confirmRemove:'این سطل از داشبورد حذف شود؟',needName:'برای سطل یک نام بنویسید.',addBin:'افزودن سطل',
+  demoBadge:'نمایشی',demoNote:'داده‌های نمایشی — برای دیدن سطل واقعی، ESP32 خود را اضافه کنید.',dThrow:'انداختن زباله',dFill:'پُر کردن تا 90%',dEmpty:'خالی کردن',dPause:'توقف',dPlay:'ادامه',
+  neon:'نئون',on:'روشن',offTxt:'خاموش',connected:'به {0} متصل شد.',cleared:'داده‌ها پاک شد.',saved:'ذخیره شد.',bins:'سطل'
+}};
+let lang=store.get('binLang')||((navigator.language||'').toLowerCase().startsWith('fa')?'fa':'en');
+if(!I18N[lang])lang='en';
+let theme=store.get('binTheme')||'dark';
+function tr(k){let s=(I18N[lang][k]!==undefined?I18N[lang][k]:I18N.en[k]);if(s===undefined)s=k;for(let i=1;i<arguments.length;i++){const v=arguments[i];s=s.replace('{'+(i-1)+'}',()=>v);}return s;}
+const locTag=()=>lang==='fa'?'fa-AF-u-nu-latn':'en-GB';
+function dur(s){s=Math.max(0,Math.round(s));const U=I18N[lang].u,d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);
+  if(d>=1)return d+U.d+(h?' '+h+U.h:'');if(h>=1)return h+U.h+(m?' '+m+U.m:'');if(m>=1)return m+U.m;return s+U.s;}
+function ago(s){return s<5?tr('justNow'):tr('ago',dur(s));}
+let _dtf=null,_dtfLang='';
+function dateStr(d){try{if(!_dtf||_dtfLang!==lang){_dtf=new Intl.DateTimeFormat(locTag(),{day:'numeric',month:'short'});_dtfLang=lang;}return _dtf.format(d);}catch(e){return d.getDate()+'/'+(d.getMonth()+1);}}
+function fmtT(t){
+  if(!(t>1.7e9))return tr('uptime')+' '+dur(t);
+  const d=new Date(t*1000),n=new Date(),same=d.toDateString()===n.toDateString();
+  return (same?'':dateStr(d)+' · ')+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
 }
-function demoCsv(){return D.log.map(r=>r.join(',')).join('\n');}
+function wdNames(){try{const f=new Intl.DateTimeFormat(locTag(),{weekday:'short'});return Array.from({length:7},(_,i)=>f.format(new Date(2026,0,4+i)));}catch(e){return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];}}
+const weekOrder=()=>lang==='fa'?[6,0,1,2,3,4,5]:[1,2,3,4,5,6,0];
 
-/* ---------- Network ---------- */
-async function getText(p){const r=await fetch(base+p,{cache:'no-store'});if(!r.ok)throw new Error(r.status);return r.text();}
-async function tick(){
-  try{
-    S=demo?demoStep():JSON.parse(await getText('/api/status'));
-    if(!demo)everOk=true;
-    fails=0;onStatus();setConn(true);
-  }catch(e){
-    fails++;
-    if(!base&&!everOk&&!demo&&fails>=2){demo=true;loadLog();}
-    setConn(false);
+/* ---------------------------- state ---------------------------- */
+const DEF={warnOn:true,warn:75,sound:true,voice:false,vibe:true,offline:true};
+let cfg=Object.assign({},DEF,store.json('binCfg',{}));
+let bins=store.json('binList',[]);
+let locs=store.json('binLocs',{});
+(function migrate(){ // older versions stored one address
+  const old=store.get('binBase');
+  if(!bins.length&&old){const id='b'+Date.now().toString(36);bins=[{id,name:'My bin',addr:old.replace(/\/$/,'')}];store.setJson('binList',bins);
+    const ol=store.json('binLoc',null);if(ol){locs[id]=ol;store.setJson('binLocs',locs);}}
+})();
+const DEMO_BINS=[
+  {id:'d1',name:'Front gate',demo:true,rate:2.6,p:.16,lat:34.5281,lng:69.1723,seed:11,crit:[35,60]},
+  {id:'d2',name:'Main hall',demo:true,rate:1.5,p:.06,seed:23,crit:[15,70]},
+  {id:'d3',name:'Cafeteria',demo:true,rate:4.2,p:.11,seed:37,crit:[76,88]}];
+const allBins=()=>bins.length?bins:DEMO_BINS;
+let curId=store.get('binCur');
+if(!allBins().some(b=>b.id===curId))curId=allBins()[0].id;
+const cur=()=>allBins().find(b=>b.id===curId)||allBins()[0];
+const R={};
+function rt(id){return R[id]||(R[id]={S:null,ev:[],an:null,ok:false,everOk:false,fails:0,lastOk:0,busy:false,prevFull:null,prevTotal:null,prevFill:null,prevWarn:null,offAlerted:false});}
+let evFilter='all',evLimit=15,chartRange=+store.get('binRange')||21600,chartAnim=1,hoverT=null,chartGeom=null,tickN=0;
+
+/* ---------------------------- demo engine ---------------------------- */
+const DS={};
+const dd=(f,depth)=>+(depth-(depth-5)*f/100).toFixed(1);
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+function demoState(id){
+  if(DS[id])return DS[id];
+  const b=DEMO_BINS.find(x=>x.id===id),rnd=mulberry(b.seed),now=Math.floor(Date.now()/1000),depth=40;
+  const prof=[.1,.05,.05,.05,.1,.3,.8,1.6,2.4,1.8,1.4,1.6,2.2,2,1.5,1.4,1.7,2.3,2,1.3,.8,.5,.3,.2];
+  let fill=6+rnd()*10,full=false,ts=now-9*86400;
+  const ev=[[ts,'boot',fill|0,dd(fill,depth)]];
+  while(ts<now){
+    ts+=60;
+    const h=new Date(ts*1000).getHours();
+    if(full){if(rnd()<1/55){fill=3+rnd()*3;full=false;ev.push([ts,'emptied',fill|0,dd(fill,depth)]);}continue;}
+    if(rnd()<prof[h]*b.rate/60){
+      fill=Math.min(100,fill+1.6+rnd()*3.4);ev.push([ts,'item',fill|0,dd(fill,depth)]);
+      if(fill>=90){full=true;ev.push([ts,'full',fill|0,dd(fill,depth)]);}
+    }
   }
+  // pick the latest moment that matches the wanted state, then shift time so it is "now"
+  let cut=ev.length-1;
+  for(let i=ev.length-1;i>0;i--){const e=ev[i];if(e[1]==='item'&&e[2]>=b.crit[0]&&e[2]<=b.crit[1]&&e[2]<90){cut=i;break;}}
+  const shift=now-ev[cut][0];
+  const out=ev.slice(0,cut+1).map(e=>[e[0]+shift,e[1],e[2],e[3]]).filter(e=>e[0]>=now-7*86400);
+  const last=out[out.length-1];
+  fill=last?last[2]:20;full=false;
+  const d0=new Date();d0.setHours(0,0,0,0);const mid=d0.getTime()/1000;
+  let lastItem=0,today=0;out.forEach(e=>{if(e[1]==='item'){lastItem=e[0];if(e[0]>=mid)today++;}});
+  return DS[id]={id,depth,fill,full,ev:out,total:120+out.filter(e=>e[1]==='item').length,today,last:lastItem,paused:false,lastStep:Date.now()};
 }
-async function loadLog(){
-  try{
-    const txt=demo?demoCsv():await getText('/log.csv');
-    events=txt.trim().split('\n').filter(Boolean).map(l=>{const p=l.split(',');return {t:+p[0],type:p[1],fill:+p[2],dist:+p[3]};}).reverse();
-    renderLog();drawActivity();
-  }catch(e){}
+function demoPush(d,type){const now=Math.floor(Date.now()/1000);d.ev.push([now,type,Math.round(d.fill),dd(d.fill,d.depth)]);if(d.ev.length>3000)d.ev.shift();}
+function demoItem(d){const now=Math.floor(Date.now()/1000);d.fill=Math.min(100,d.fill+2+Math.random()*4);d.total++;d.today++;d.last=now;demoPush(d,'item');if(d.fill>=90&&!d.full){d.full=true;demoPush(d,'full');}}
+function demoEmpty(d){d.fill=3+Math.random()*3;d.full=false;demoPush(d,'emptied');}
+function demoStep(b,d){
+  if(d.paused)return;
+  if(!d.full){if(Math.random()<b.p)demoItem(d);}
+  else if(Math.random()<.012)demoEmpty(d);
 }
-function setConn(ok){
-  const d=$('dot'),t=$('connTxt');
-  if(demo){d.className='dot demo';t.textContent='DEMO MODE · no ESP32 found';}
-  else if(ok){d.className='dot on';t.textContent='LIVE · '+(base?base.replace(/^https?:\/\//,''):location.host);}
-  else{d.className='dot';t.textContent=(base&&location.protocol==='https:'&&base.startsWith('http:'))?'BLOCKED · https pages cannot read http devices':'OFFLINE · retrying…';}
+function demoStatus(id){
+  const b=DEMO_BINS.find(x=>x.id===id),d=demoState(id),now=Date.now();
+  let n=Math.min(3,Math.floor((now-d.lastStep)/2000));
+  if(n>0){for(let i=0;i<n;i++)demoStep(b,d);d.lastStep=now;}
+  return {ok:true,distance:dd(d.fill,d.depth),fill:Math.round(d.fill),full:d.full,neon:d.full,today:d.today,total:d.total,t:Math.floor(now/1000),depth:d.depth,last:d.last||0,name:b.name,lat:b.lat||0,lng:b.lng||0};
+}
+const demoCsv=id=>demoState(id).ev.map(e=>e.join(',')).join('\n');
+function demoAct(a){
+  const b=cur();if(!b.demo)return;const d=demoState(b.id);
+  if(a==='throw')demoItem(d);
+  else if(a==='fill'){d.fill=Math.max(d.fill,89);demoItem(d);if(d.fill<90)d.fill=90;if(!d.full){d.full=true;demoPush(d,'full');}}
+  else if(a==='empty')demoEmpty(d);
+  else if(a==='pause'){d.paused=!d.paused;renderDemoCtl();return;}
+  pollOne(b);loadLog(b);
 }
 
-/* ---------- Status handling + alerts ---------- */
-function binName(){return (loc&&loc.name)||(S&&S.name&&S.name!=='Smart Bin'?S.name:'')||'Your bin';}
-function alertMsg(test){return (test?'TEST · ':'')+binName()+' is '+(S?S.fill:100)+'% full. Please empty it.';}
-function onStatus(){
-  hist.push({t:Date.now(),f:S.fill});if(hist.length>120)hist.shift();
-  if(prevFull===false&&S.full)triggerAlert(false);
-  else if(prevFull===null&&S.full)showBanner(alertMsg(false));
-  if(prevFull&&!S.full){hideBanner();stopFlash();}
-  if(prevTotal!==null&&S.total>prevTotal)bump();
-  prevFull=S.full;prevTotal=S.total;
-  render();
+/* ---------------------------- network ---------------------------- */
+async function fetchText(b,path,ms){
+  const c=new AbortController(),to=setTimeout(()=>c.abort(),ms||4000);
+  try{const r=await fetch((b.addr||'')+path,{cache:'no-store',signal:c.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.text();}
+  finally{clearTimeout(to);}
 }
-function showBanner(m){$('alertTxt').textContent='⚠ '+m;$('alert').classList.add('show');}
-function hideBanner(){$('alert').classList.remove('show');}
-function triggerAlert(test){
-  const m=alertMsg(test);
-  showBanner(m);
-  if(soundOn)beep();
-  try{if(navigator.vibrate)navigator.vibrate([200,100,200,100,400]);}catch(e){}
-  flashTitle();
-  try{if('Notification' in window&&Notification.permission==='granted')new Notification('Smart Bin is full',{body:m,tag:'smartbin-full'});}catch(e){}
-}
-function beep(){
+async function pollOne(b){
+  const r=rt(b.id);if(r.busy)return;r.busy=true;
   try{
-    const a=new (window.AudioContext||window.webkitAudioContext)();
-    [0,.25,.5].forEach((t,i)=>{const o=a.createOscillator(),g=a.createGain();o.type='square';o.frequency.value=i===2?880:620;g.gain.value=.05;o.connect(g);g.connect(a.destination);o.start(a.currentTime+t);o.stop(a.currentTime+t+.18);});
+    let S;
+    if(b.demo)S=demoStatus(b.id);
+    else{S=JSON.parse(await fetchText(b,'/api/status'));if(!S||typeof S.fill!=='number')throw new Error('bad json');}
+    r.fails=0;r.ok=true;r.everOk=true;r.lastOk=Date.now();r.S=S;
+    onStatus(b,r,S);
+  }catch(e){
+    r.fails++;
+    if(r.fails>=3&&r.ok){r.ok=false;onOffline(b,r);}
+    if(b.id===curId)render();
+    updateFleet();
+  }finally{r.busy=false;}
+}
+function tickAll(){tickN++;allBins().forEach(b=>{if(b.id===curId||tickN%3===0)pollOne(b);});}
+function parseCsv(txt){
+  const out=[];
+  txt.split('\n').forEach(l=>{l=l.trim();if(!l)return;const p=l.split(',');if(/[a-z]/i.test(p[0])||!p[1])return;
+    const t=+p[0],f=+p[2],d=+p[3];if(!isFinite(t))return;out.push({t:t,type:p[1].trim(),fill:isFinite(f)?f:0,dist:isFinite(d)?d:0});});
+  return out;
+}
+function cleanEvents(ev){
+  if(ev.some(e=>e.t>1.7e9))return ev.filter(e=>e.t>1.7e9);
+  let s=0;for(let i=1;i<ev.length;i++)if(ev[i].t<ev[i-1].t)s=i;return ev.slice(s);
+}
+async function loadLog(b){
+  const r=rt(b.id);
+  try{
+    const txt=b.demo?demoCsv(b.id):await fetchText(b,'/log.csv',7000);
+    const before=r.ev.length;
+    r.ev=cleanEvents(parseCsv(txt));
+    r.an=analyze(r);
+    if(b.id===curId){renderAnalytics(r.ev.length>before&&before>0);}
   }catch(e){}
 }
-let tInt=null;
-function flashTitle(){if(tInt)return;let on=false;tInt=setInterval(()=>{on=!on;document.title=on?'🔴 BIN FULL!':'Smart Bin';},900);}
-function stopFlash(){if(tInt){clearInterval(tInt);tInt=null;}document.title='Smart Bin';}
-function bump(){
-  const it=$('itemdrop'),sl=$('slitR'),f=S?S.fill:0;
-  it.style.setProperty('--drop',Math.max(8,(160-116*f/100)-52)+'px');
-  it.classList.remove('go');void it.getBoundingClientRect();it.classList.add('go');
-  sl.classList.remove('flash');void sl.getBoundingClientRect();sl.classList.add('flash');
-}
-$('alertX').onclick=()=>{hideBanner();stopFlash();};
 
-/* ---------- Rendering ---------- */
-function fmtTime(t){
-  if(!t)return '–';
-  if(t>1.7e9)return new Date(t*1000).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  const s=t|0;return 'uptime '+Math.floor(s/3600)+'h '+Math.floor(s%3600/60)+'m '+s%60+'s';
+/* ---------------------------- analytics ---------------------------- */
+function slopePerHour(pts){
+  const n=pts.length;let mx=0,my=0;pts.forEach(p=>{mx+=p[0];my+=p[1];});mx/=n;my/=n;
+  let sxy=0,sxx=0;pts.forEach(p=>{sxy+=(p[0]-mx)*(p[1]-my);sxx+=(p[0]-mx)*(p[0]-mx);});
+  return sxx?sxy/sxx*3600:0;
 }
-function fmtShort(t){return !t?'–':t>1.7e9?new Date(t*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',hour12:false}):'earlier';}
-function render(){
-  const f=S.fill,full=S.full,warn=!full&&f>=60;
-  document.body.classList.toggle('is-full',full);
-  $('binsvg').style.setProperty('--c',full?'#ff2a8a':warn?'#ffbf3c':'#2cf5c0');
+function analyze(r){
+  const S=r.S,ev=r.ev,now=S?S.t:Date.now()/1000,real=now>1.7e9;
+  const o={rate:null,eta:null,avgFill:null,lastEmpty:null,week:null,heat:null,busyHour:null,weekTotal:0};
+  for(let i=ev.length-1;i>=0;i--)if(ev[i].type==='emptied'){o.lastEmpty=ev[i].t;break;}
+  const ds=[];let te=null;
+  ev.forEach(e=>{if(e.type==='emptied')te=e.t;else if(e.type==='full'&&te!=null){if(e.t-te>300)ds.push(e.t-te);te=null;}});
+  if(ds.length)o.avgFill=ds.reduce((a,b)=>a+b,0)/ds.length;
+  const since=o.lastEmpty!=null?o.lastEmpty:now-12*3600;
+  const pts=ev.filter(e=>e.type==='item'&&e.t>=since).map(e=>[e.t,e.fill]);
+  if(S)pts.push([now,S.fill]);
+  if(pts.length>=4&&pts[pts.length-1][0]-pts[0][0]>=600){const sl=slopePerHour(pts);if(sl>0.05)o.rate=sl;}
+  if(S){
+    if(S.full||S.fill>=90)o.eta=0;
+    else if(o.rate&&o.rate>0.3)o.eta=(90-S.fill)/o.rate*3600;
+    else if(o.avgFill&&o.lastEmpty!=null)o.eta=Math.max(0,o.lastEmpty+o.avgFill-now);
+    if(o.eta!=null&&o.eta>14*86400)o.eta=null;
+  }
+  if(real){
+    const ds0=new Date(now*1000);ds0.setHours(0,0,0,0);const d0=ds0.getTime()/1000;
+    const week=[];for(let i=6;i>=0;i--)week.push({t0:d0-i*86400,n:0});
+    const heat=Array.from({length:7},()=>Array(24).fill(0)),hh=Array(24).fill(0);
+    ev.forEach(e=>{
+      if(e.type!=='item')return;
+      const idx=Math.floor((e.t-week[0].t0)/86400);if(idx>=0&&idx<7){week[idx].n++;o.weekTotal++;}
+      if(e.t>=now-28*86400){const d=new Date(e.t*1000);heat[d.getDay()][d.getHours()]++;hh[d.getHours()]++;}
+    });
+    o.week=week;o.heat=heat;
+    const mx=Math.max(...hh);if(mx>0){const h=hh.indexOf(mx);o.busyHour=pad(h)+':00–'+pad((h+1)%24)+':00';}
+  }
+  return o;
+}
+
+/* ---------------------------- state + rendering ---------------------------- */
+function stateOf(b){
+  const r=rt(b.id),S=r.S;
+  if(!S)return r.fails>=3?'off':'conn';
+  if(!r.ok)return 'off';
+  if(S.full)return 'full';
+  return S.fill>=(cfg.warnOn?cfg.warn:70)?'warn':'ok';
+}
+const numCur={};
+function tween(id,to){
+  const el=$(id);if(!el)return;const from=numCur[id]===undefined?to:numCur[id];numCur[id]=to;
+  if(reduce||from===to){el.textContent=to;return;}
+  const t0=performance.now(),dur0=600;
+  (function step(now){const p=clamp((now-t0)/dur0,0,1),e=1-Math.pow(1-p,3);el.textContent=Math.round(from+(to-from)*e);if(p<1&&numCur[id]===to)requestAnimationFrame(step);else el.textContent=to;})(t0);
+}
+const setT=(id,v)=>{const e=$(id);if(e&&e.textContent!==String(v))e.textContent=v;};
+function buildSeg(){
+  const s=$('seg');if(s.children.length)return;
+  s.innerHTML=Array.from({length:25},()=>'<i></i>').join('');
+}
+function renderSeg(f){
+  const warnAt=cfg.warnOn?cfg.warn:70,n=Math.round(f/100*25);
+  Array.from($('seg').children).forEach((el,i)=>{
+    const pos=(i+1)/25*100;
+    el.className=(i<n?'on ':'')+(pos>90?'r':pos>warnAt?'a':'g');
+  });
+  $('mkWarn').style.left=warnAt+'%';$('mkWarn').style.display=cfg.warnOn?'':'none';
+  $('mkWarnT').textContent=warnAt;
+}
+function renderBin(S,st){
+  const f=S?S.fill:0,full=st==='full',svg=$('binsvg');
+  svg.style.setProperty('--c',bcss('--acc'));
+  svg.classList.toggle('isfull',full);
   const dy=116*(1-f/100),sy=Math.max(62,46+dy);
   $('trash').style.transform='translateY('+dy.toFixed(1)+'px)';
   $('cone').setAttribute('points','56,56 74,56 90,'+sy.toFixed(1)+' 40,'+sy.toFixed(1));
   $('beam').setAttribute('d','M65 56 V'+sy.toFixed(1));
-  const NB='\u00A0',l1='Fill:'+String(f).padStart(3,NB)+'%'+NB+NB+(full?'FULL!':'OK');
+  $('ripples').style.setProperty('--rd',Math.max(10,sy-58).toFixed(0)+'px');
+  let l1;
+  if(st==='off')l1='No connection';else if(st==='conn'||!S)l1='Connecting...';
+  else l1='Fill:'+String(f).padStart(3,NB)+'%'+NB+NB+(full?'FULL!':'OK');
   $('lcd1').textContent=(l1+NB.repeat(16)).slice(0,16);
   $('lcdbar').setAttribute('width',(68*f/100).toFixed(1));
-  $('pct').textContent=f;
-  const h=$('headline');
-  h.textContent=full?'BIN FULL':warn?'FILLING UP':'ALL CLEAR';
-  h.style.color=full?'var(--full)':warn?'var(--warn)':'var(--ok)';
-  $('sub').textContent=full?'The neon is on. Please empty the bin.':warn?'Getting close — plan to empty it soon.':'Plenty of space left.';
-  $('tube').className='tube'+(S.neon?' on':'');$('neonTxt').textContent=S.neon?'ON':'OFF';
-  $('dist').textContent=S.distance>0?S.distance.toFixed(1):'–';
-  $('today').textContent=S.today;$('total').textContent=S.total;$('last').textContent=fmtShort(S.last);
-  if(!locFilled&&curLoc()){renderLoc(true);}
-  drawChart();
 }
-const LABEL={item:'Item thrown in',full:'Bin FULL · neon ON',emptied:'Bin emptied',boot:'Device started'};
-function renderLog(){
-  const tb=$('log');tb.innerHTML='';
-  events.slice(0,40).forEach(e=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML='<td>'+fmtTime(e.t)+'</td><td><span class="tag t-'+e.type+'">'+(LABEL[e.type]||e.type)+'</span></td><td>'+e.fill+'%</td><td>'+e.dist+' cm</td>';
-    tb.appendChild(tr);
+let _lastState='';
+function render(){
+  const b=cur(),r=rt(b.id),S=r.S,st=stateOf(b);
+  ['ok','warn','full','off','conn'].forEach(c=>document.body.classList.toggle('st-'+c,c===st));
+  _lastState=st;
+  $('binName').textContent=b.name;
+  $('demoBadge').hidden=!b.demo;
+  $('headline').textContent=tr(st);
+  $('sub').textContent=tr(st+'Sub');
+  tween('pct',S?S.fill:0);
+  renderSeg(S?S.fill:0);
+  const neon=!!(S&&S.neon&&r.ok);
+  $('tube').className='tube'+(neon?' on':'');$('neonTxt').textContent=neon?tr('on'):tr('offTxt');
+  renderBin(S,st);
+  renderConn();
+  renderKpis();
+  renderLocUI(false);
+  updateFleet();
+  drawChart();
+  document.title=(st==='full'?'🔴 ':'')+tr('title');
+}
+function renderConn(){
+  const b=cur(),r=rt(b.id),st=stateOf(b),dot=$('dot'),txt=$('connTxt');
+  if(b.demo){dot.className='dot demo';txt.textContent=tr('demoMode');}
+  else if(st==='off'||(!r.S&&r.fails>0)){
+    dot.className='dot bad';
+    txt.textContent=(b.addr&&location.protocol==='https:'&&b.addr.startsWith('http:'))?tr('blocked'):tr('offlineChip');
+  }else if(st==='conn'){dot.className='dot';txt.textContent=tr('conn');}
+  else{dot.className='dot on';txt.textContent=tr('live')+' · '+(b.addr?b.addr.replace(/^https?:\/\//,''):location.host||'device');}
+}
+function renderKpis(){
+  const b=cur(),r=rt(b.id),S=r.S,an=r.an||{},now=S?S.t:0;
+  setT('kDist',S&&S.distance>0?S.distance.toFixed(1):'–');
+  setT('kToday',S?S.today:'–');setT('kTotal',S?S.total:'–');
+  setT('kLast',S&&S.last?ago(now-S.last):'–');
+  setT('kRate',an.rate!=null?an.rate.toFixed(1)+tr('perHour'):'–');
+  setT('kEta',S&&S.full?tr('full'):(an.eta!=null?(an.eta<60?'<1'+I18N[lang].u.m:dur(an.eta)):'–'));
+  setT('kAvg',an.avgFill!=null?dur(an.avgFill):'–');
+  setT('kEmpty',an.lastEmpty!=null&&S?ago(Math.max(0,now-an.lastEmpty)):'–');
+  $('updTxt').textContent=r.lastOk?tr('updated',ago((Date.now()-r.lastOk)/1000)):'';
+}
+function renderAnalytics(newRow){
+  const r=rt(curId);
+  if(r.S)r.an=analyze(r);
+  renderKpis();drawChart();buildWeek();buildHeat();buildFilters();renderTable(newRow);
+}
+
+/* ---------------------------- fleet ---------------------------- */
+function buildFleet(){
+  const f=$('fleet');
+  f.innerHTML=allBins().map(b=>
+    '<div class="bcard" data-id="'+esc(b.id)+'"><div class="ring"><svg viewBox="0 0 46 46"><circle class="rb" cx="23" cy="23" r="18"/><circle class="rf" cx="23" cy="23" r="18" stroke-dashoffset="113.1"/></svg><b>–</b></div>'+
+    '<div><div class="nm">'+esc(b.name)+'</div><div class="st">…</div></div>'+
+    (b.demo?'':'<button class="edit" data-edit="'+esc(b.id)+'" title="'+esc(tr('dlgEdit'))+'"><svg class="ic"><use href="#i-edit"/></svg></button>')+'</div>'
+  ).join('')+'<div class="bcard addcard" data-add="1"><svg class="ic"><use href="#i-plus"/></svg><span>'+esc(tr('addBin'))+'</span></div>';
+  updateFleet();
+}
+function updateFleet(){
+  $$('.bcard[data-id]').forEach(el=>{
+    const b=allBins().find(x=>x.id===el.dataset.id);if(!b)return;
+    const r=rt(b.id),S=r.S,st=stateOf(b);
+    el.className='bcard s-'+st+(b.id===curId?' sel':'');
+    el.querySelector('.rf').setAttribute('stroke-dashoffset',(113.1*(1-(S?S.fill:0)/100)).toFixed(1));
+    el.querySelector('b').textContent=S?S.fill+'%':'–';
+    el.querySelector('.st').textContent=st==='full'?tr('full'):st==='off'?tr('off'):st==='conn'?tr('conn'):S?tr('today')+': '+S.today:'…';
   });
-  $('noLog').style.display=events.length?'none':'block';
+}
+function selectBin(id){
+  if(id===curId)return;
+  curId=id;store.set('binCur',id);hideBanner();hoverT=null;locFilled=false;evLimit=15;
+  render();renderAnalytics(false);animateChart();loadLog(cur());
+}
+
+/* ---------------------------- charts ---------------------------- */
+function chartData(r,range){
+  const S=r.S,now=S?S.t:Date.now()/1000,from=now-range,pts=[];let before=null;
+  for(const e of r.ev){if(e.t<from){before=e;continue;}if(e.t>now+5)break;pts.push({t:e.t,f:e.fill,ty:e.type});}
+  pts.unshift({t:from,f:before?before.fill:(pts[0]?pts[0].f:(S?S.fill:0)),ty:'start'});
+  if(S)pts.push({t:now,f:S.fill,ty:'now'});
+  return {pts,from,to:now};
+}
+function fillAt(pts,t){let v=pts[0].f;for(const p of pts){if(p.t<=t)v=p.f;else break;}return v;}
+function animateChart(){
+  if(reduce){chartAnim=1;drawChart();return;}
+  chartAnim=0;const t0=performance.now();
+  (function step(now){chartAnim=clamp((now-t0)/800,0,1);drawChart();if(chartAnim<1)requestAnimationFrame(step);})(t0);
 }
 function drawChart(){
-  const c=$('chart'),dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;
-  if(!w)return;
-  c.width=w*dpr;c.height=h*dpr;const g=c.getContext('2d');g.scale(dpr,dpr);g.clearRect(0,0,w,h);
-  const col=S&&S.full?'#ff2a8a':'#2cf5c0';
-  const L=34,B=18,T=8,W=w-L-8,H=h-B-T;
-  g.font='11px JetBrains Mono, monospace';g.fillStyle='#7a86a3';g.strokeStyle='#1b2230';g.lineWidth=1;
-  [0,25,50,75,100].forEach(v=>{const y=T+H-H*v/100;g.beginPath();g.moveTo(L,y);g.lineTo(L+W,y);g.stroke();g.fillText(v,4,y+4);});
-  g.setLineDash([5,5]);g.strokeStyle='#ff2a8a99';const yf=T+H-H*.9;g.beginPath();g.moveTo(L,yf);g.lineTo(L+W,yf);g.stroke();g.setLineDash([]);
-  if(hist.length<2)return;
-  const pts=hist.map((p,i)=>[L+W*i/(hist.length-1),T+H-H*p.f/100]);
-  const gr=g.createLinearGradient(0,T,0,T+H);gr.addColorStop(0,col+'55');gr.addColorStop(1,col+'00');
-  g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));
-  g.lineTo(pts[pts.length-1][0],T+H);g.lineTo(pts[0][0],T+H);g.closePath();g.fillStyle=gr;g.fill();
-  g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));
-  g.strokeStyle=col;g.lineWidth=2;g.stroke();
+  const c=$('chart');if(!c)return;const w=c.clientWidth,h=c.clientHeight;if(!w||!h)return;
+  const dpr=window.devicePixelRatio||1;
+  if(c.width!==Math.round(w*dpr)||c.height!==Math.round(h*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr);}
+  const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const r=rt(curId);if(!r.S)return;
+  const col=bcss('--acc'),mut=bcss('--mut'),line=bcss('--line'),wc=bcss('--warn'),fc=bcss('--full'),bl=bcss('--blue');
+  const {pts,from,to}=chartData(r,chartRange);
+  const L=34,Rr=10,T=10,B=24,W=w-L-Rr,H=h-T-B;
+  const X=t=>L+W*(t-from)/(to-from),Y=f=>T+H-H*f/100;
+  chartGeom={L,W,from,to,pts,T,H};
+  g.font='11px '+MONO;g.textBaseline='middle';g.textAlign='right';g.lineWidth=1;g.strokeStyle=line;g.fillStyle=mut;
+  [0,25,50,75,100].forEach(v=>{const y=Y(v);g.beginPath();g.moveTo(L,y);g.lineTo(L+W,y);g.stroke();g.fillText(String(v),L-6,y);});
+  // x ticks
+  const real=to>1.7e9,step=chartRange<=3600?900:chartRange<=21600?3600:chartRange<=86400?14400:86400;
+  const off=real?new Date(to*1000).getTimezoneOffset()*60:0;
+  let t0=real?Math.ceil((from-off)/step)*step+off:to-Math.floor((to-from)/step)*step;
+  g.textAlign='center';g.textBaseline='top';const wd=wdNames();
+  for(let t=t0;t<=to+1;t+=step){
+    const x=X(t);if(x<L-1||x>L+W+1)continue;
+    g.strokeStyle=line;g.beginPath();g.moveTo(x,T+H);g.lineTo(x,T+H+4);g.stroke();
+    let lb;if(real){const d=new Date(t*1000);lb=chartRange>86400?wd[d.getDay()]:pad(d.getHours())+':'+pad(d.getMinutes());}else lb='-'+dur(to-t);
+    g.fillStyle=mut;g.fillText(lb,clamp(x,L+14,L+W-14),T+H+7);
+  }
+  // threshold lines
+  g.setLineDash([5,5]);g.lineWidth=1;
+  g.strokeStyle=fc+'aa';g.beginPath();g.moveTo(L,Y(90));g.lineTo(L+W,Y(90));g.stroke();
+  if(cfg.warnOn){g.strokeStyle=wc+'99';g.beginPath();g.moveTo(L,Y(cfg.warn));g.lineTo(L+W,Y(cfg.warn));g.stroke();}
+  g.setLineDash([]);
+  // series (stepped), revealed left→right
+  const prog=1-Math.pow(1-chartAnim,3);
+  g.save();g.beginPath();g.rect(L-2,0,(W+4)*prog,h);g.clip();
+  const path=()=>{g.beginPath();pts.forEach((p,i)=>{const x=X(p.t),y=Y(p.f);if(i===0)g.moveTo(x,y);else{g.lineTo(x,Y(pts[i-1].f));g.lineTo(x,y);}});};
+  path();g.lineTo(X(to),T+H);g.lineTo(X(from),T+H);g.closePath();
+  const gr=g.createLinearGradient(0,T,0,T+H);gr.addColorStop(0,col+'55');gr.addColorStop(1,col+'00');g.fillStyle=gr;g.fill();
+  path();g.strokeStyle=col;g.lineWidth=2;g.lineJoin='round';g.stroke();
+  pts.forEach(p=>{if(p.ty==='full'||p.ty==='emptied'){g.beginPath();g.arc(X(p.t),Y(p.f),4,0,6.3);g.fillStyle=p.ty==='full'?fc:bl;g.fill();g.lineWidth=2;g.strokeStyle=bcss('--bg');g.stroke();}});
+  g.restore();
+  // hover crosshair
+  if(hoverT!=null&&chartAnim>=1){
+    const v=fillAt(pts,hoverT),x=X(hoverT),y=Y(v);
+    g.strokeStyle=mut;g.setLineDash([3,3]);g.beginPath();g.moveTo(x,T);g.lineTo(x,T+H);g.stroke();g.setLineDash([]);
+    g.beginPath();g.arc(x,y,5,0,6.3);g.fillStyle=col;g.fill();g.lineWidth=2;g.strokeStyle=bcss('--bg');g.stroke();
+  }
 }
-function drawActivity(){
-  const now=Date.now(),H=3600e3,b=Array(12).fill(0);
-  events.forEach(e=>{if(e.type!=='item'||e.t<1.7e9)return;const i=11-Math.floor((now-e.t*1000)/H);if(i>=0&&i<12)b[i]++;});
-  const mx=Math.max(1,...b);
-  $('bars').innerHTML=b.map((n,i)=>'<div class="bar"><em>'+(n||'')+'</em><i style="height:'+Math.max(3,n/mx*82)+'%"></i><span>'+(i===11?'now':'-'+(11-i))+'</span></div>').join('');
+function chartHover(ev){
+  const c=$('chart'),gm=chartGeom,tip=$('tip');if(!gm)return;
+  const rect=c.getBoundingClientRect(),x=ev.clientX-rect.left;
+  if(x<gm.L||x>gm.L+gm.W){chartLeave();return;}
+  hoverT=gm.from+(x-gm.L)/gm.W*(gm.to-gm.from);
+  const v=fillAt(gm.pts,hoverT);
+  tip.textContent=(hoverT>1.7e9?fmtT(hoverT):'-'+dur(gm.to-hoverT))+'  ·  '+v+'%';
+  tip.style.left=clamp(x,60,rect.width-60)+'px';tip.style.opacity=1;
+  drawChart();
+}
+function chartLeave(){hoverT=null;$('tip').style.opacity=0;drawChart();}
+
+function buildWeek(){
+  const an=rt(curId).an,el=$('wk');
+  if(!an||!an.week){el.innerHTML='<div class="mut" style="align-self:center;width:100%;text-align:center">'+esc(tr('needClock'))+'</div>';$('wkTotal').textContent='';return;}
+  const mx=Math.max(1,...an.week.map(w=>w.n)),wd=wdNames();
+  el.innerHTML=an.week.map((w,i)=>'<div class="col'+(i===6?' today':'')+'"><em>'+w.n+'</em><div class="b" style="height:0" data-h="'+(w.n/mx*100).toFixed(0)+'"></div><span>'+wd[new Date(w.t0*1000).getDay()]+'</span></div>').join('');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>$$('.b',el).forEach(b=>b.style.height=Math.max(3,b.dataset.h*0.78)+'%')));
+  $('wkTotal').textContent=tr('total7',an.weekTotal);
+}
+function buildHeat(){
+  const an=rt(curId).an,el=$('heat');
+  if(!an||!an.heat){el.innerHTML='<div class="mut" style="grid-column:1/-1">'+esc(tr('needClock'))+'</div>';$('busyTxt').textContent='';return;}
+  const order=weekOrder(),wd=wdNames(),mx=Math.max(1,...an.heat.flat());
+  let h='<div></div>';for(let i=0;i<24;i++)h+='<div class="hh">'+(i%3===0?pad(i):'')+'</div>';
+  order.forEach(d=>{h+='<div class="hl">'+wd[d]+'</div>';for(let i=0;i<24;i++){const n=an.heat[d][i];h+='<i style="--v:'+(n/mx).toFixed(2)+';--i:'+(i+d*3)+'" title="'+wd[d]+' '+pad(i)+':00 · '+n+'"></i>';}});
+  el.innerHTML=h;
+  $('busyTxt').textContent=an.busyHour?tr('busiest',an.busyHour):'';
+}
+const EV_KEY={item:'evItem',full:'evFull',emptied:'evEmptied',boot:'evBoot'};
+const evLabel=t=>EV_KEY[t]?tr(EV_KEY[t]):t;
+function buildFilters(){
+  const r=rt(curId),cnt={all:r.ev.length,item:0,full:0,emptied:0,boot:0};r.ev.forEach(e=>{if(cnt[e.type]!==undefined)cnt[e.type]++;});
+  const K={all:'fAll',item:'fItem',full:'fFull',emptied:'fEmptied',boot:'fBoot'};
+  $('evFilters').innerHTML=Object.keys(K).map(k=>'<button data-f="'+k+'" class="'+(evFilter===k?'on':'')+'">'+esc(tr(K[k]))+'<b>'+cnt[k]+'</b></button>').join('');
+}
+function renderTable(newRow){
+  const r=rt(curId);let list=r.ev.slice().reverse();if(evFilter!=='all')list=list.filter(e=>e.type===evFilter);
+  $('log').innerHTML=list.slice(0,evLimit).map((e,i)=>'<tr'+(newRow&&i===0?' class="new"':'')+'><td>'+esc(fmtT(e.t))+'</td><td><span class="tag t-'+esc(e.type)+'">'+esc(evLabel(e.type))+'</span></td><td><span class="mini"><i style="width:'+clamp(e.fill,0,100)+'%"></i></span>'+e.fill+'%</td><td>'+e.dist+' cm</td></tr>').join('');
+  $('noLog').hidden=list.length>0;$('btnMore').hidden=list.length<=evLimit;
 }
 
-/* ---------- Location ---------- */
-function curLoc(){
-  if(loc&&isFinite(loc.lat)&&isFinite(loc.lng)&&(loc.lat||loc.lng))return loc;
-  if(S&&(S.lat||S.lng))return {name:S.name,lat:S.lat,lng:S.lng,dev:true};
+/* ---------------------------- bin effects ---------------------------- */
+const SVGNS='http://www.w3.org/2000/svg';
+function mk(tag,attrs,parent){const e=document.createElementNS(SVGNS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);parent.appendChild(e);return e;}
+function restart(el,cls){el.classList.remove(cls);void el.getBoundingClientRect();el.classList.add(cls);}
+function fxItem(){
+  if(reduce)return;
+  const S=rt(curId).S,f=S?S.fill:0,surf=160-116*f/100;
+  $('itemdrop').style.setProperty('--drop',Math.max(8,surf-52)+'px');
+  restart($('itemdrop'),'go');restart($('slitR'),'flash');
+  setTimeout(()=>fxSplash(surf),640);
+}
+function fxSplash(surf){
+  const g=$('fxWin');
+  for(let i=0;i<9;i++){
+    const c=mk('circle',{cx:(60+Math.random()*10).toFixed(1),cy:surf.toFixed(1),r:(1+Math.random()*1.6).toFixed(1),class:'sp'},g);
+    c.style.setProperty('--dx',((Math.random()-.5)*46).toFixed(0)+'px');c.style.setProperty('--dy',(-8-Math.random()*22).toFixed(0)+'px');
+    setTimeout(()=>c.remove(),900);
+  }
+}
+function fxSparkle(){
+  if(reduce)return;const g=$('fxTop');
+  for(let i=0;i<12;i++){
+    const w=mk('g',{transform:'translate('+(60+Math.random()*180).toFixed(0)+' '+(30+Math.random()*120).toFixed(0)+')'},g);
+    const s=mk('path',{d:'M0 -5 L1.3 -1.3 L5 0 L1.3 1.3 L0 5 L-1.3 1.3 L-5 0 L-1.3 -1.3Z',class:'spark'},w);
+    s.style.animationDelay=(Math.random()*.5).toFixed(2)+'s';setTimeout(()=>w.remove(),1900);
+  }
+}
+(function bits(){
+  const g=$('bits'),cols=['#e2b25b','#6aa5ff','#d0d4dc','#ff7a8a','#7be0a2','#b78ae6'];let sd=7;const rn=()=>(sd=(sd*16807)%2147483647)/2147483647;let h='';
+  for(let i=0;i<34;i++){const x=14+rn()*98,y=52+rn()*150,w=6+rn()*9,hh=4+rn()*7,a=(rn()*70-35)|0;
+    h+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+hh.toFixed(1)+'" rx="1.5" fill="'+cols[i%6]+'" opacity=".55" transform="rotate('+a+' '+(x+w/2).toFixed(1)+' '+(y+hh/2).toFixed(1)+')"/>';}
+  g.innerHTML=h;
+})();
+/* floating particles behind the bin */
+const PT={items:[],w:0,h:0,last:0};
+function initParticles(){
+  const c=$('fx'),hero=$('hero');if(reduce||!c.getContext)return;
+  const ctx=c.getContext('2d');
+  const size=()=>{const dpr=window.devicePixelRatio||1;PT.w=hero.clientWidth;PT.h=hero.clientHeight;c.width=PT.w*dpr;c.height=PT.h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);};
+  size();if(window.ResizeObserver)new ResizeObserver(size).observe(hero);else addEventListener('resize',size);
+  PT.items=Array.from({length:38},()=>({x:Math.random(),y:Math.random(),r:.8+Math.random()*2.2,v:.05+Math.random()*.18,ph:Math.random()*6.3,a:.15+Math.random()*.5}));
+  (function loop(now){
+    requestAnimationFrame(loop);
+    if(document.hidden||now-PT.last<33)return;PT.last=now;
+    const full=_lastState==='full',off=_lastState==='off',col=bcss('--acc')||'#2cf5c0';
+    ctx.clearRect(0,0,PT.w,PT.h);ctx.fillStyle=col;
+    PT.items.forEach(p=>{
+      p.y-=p.v*(full?2.4:1)/PT.h*3;if(p.y<-.05){p.y=1.05;p.x=Math.random();}
+      const x=(p.x+Math.sin(now/1800+p.ph)*.012)*PT.w,y=p.y*PT.h,tw=.5+.5*Math.sin(now/700+p.ph);
+      ctx.globalAlpha=(off?.08:p.a*.55)*(.5+tw*.5);ctx.beginPath();ctx.arc(x,y,p.r,0,6.3);ctx.fill();
+      ctx.globalAlpha=(off?.02:p.a*.12)*(.5+tw*.5);ctx.beginPath();ctx.arc(x,y,p.r*3.4,0,6.3);ctx.fill();
+    });
+    ctx.globalAlpha=1;
+  })(0);
+}
+
+/* ---------------------------- alerts ---------------------------- */
+let audioCtx=null,flashTimer=null;
+function beep(){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume&&audioCtx.resume();
+    [0,.25,.5].forEach((d,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='square';o.frequency.value=i===2?880:620;g.gain.value=.05;o.connect(g);g.connect(audioCtx.destination);o.start(audioCtx.currentTime+d);o.stop(audioCtx.currentTime+d+.18);});
+  }catch(e){}
+}
+function speak(msg){
+  if(!cfg.voice||!('speechSynthesis' in window))return;
+  try{const u=new SpeechSynthesisUtterance(msg);u.lang=lang==='fa'?'fa-IR':'en-US';speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}
+}
+function notify(title,body,tag){try{if('Notification' in window&&Notification.permission==='granted')new Notification(title,{body,tag});}catch(e){}}
+function showBanner(kind,msg){const a=$('alert');a.className='show '+kind;$('alertTxt').textContent=msg;}
+function hideBanner(){$('alert').classList.remove('show');stopFlash();}
+function flashTitle(){if(flashTimer)return;let on=false;flashTimer=setInterval(()=>{on=!on;document.title=on?'🔴 '+tr('full').toUpperCase():tr('title');},900);}
+function stopFlash(){if(flashTimer){clearInterval(flashTimer);flashTimer=null;}}
+function toast(msg,kind,ms){
+  const d=document.createElement('div');d.className='toast '+(kind||'');d.textContent=msg;$('toasts').appendChild(d);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('in')));
+  setTimeout(()=>{d.classList.remove('in');setTimeout(()=>d.remove(),400);},ms||3800);
+}
+function alertFull(b,S,test){
+  const m=tr(test?'testMsg':'alertFull',b.name,S.fill);
+  showBanner('full',m);toast(m,'full',6500);
+  if(cfg.sound)beep();
+  if(cfg.vibe&&navigator.vibrate){try{navigator.vibrate([200,100,200,100,400]);}catch(e){}}
+  speak(m);flashTitle();notify(tr('full'),m,'full-'+b.id);
+}
+function alertWarn(b,S){
+  const m=tr('alertWarn',b.name,S.fill);
+  showBanner('warn',m);toast(m,'warn',6000);if(cfg.sound)beep();speak(m);notify(tr('warn'),m,'warn-'+b.id);
+}
+function onOffline(b,r){
+  if(!cfg.offline||!r.everOk||r.offAlerted)return;
+  r.offAlerted=true;const m=tr('alertOffline',b.name);
+  if(b.id===curId)showBanner('off',m);toast(m,'warn',6000);notify(tr('off'),m,'off-'+b.id);
+}
+function onStatus(b,r,S){
+  const isCur=b.id===curId;
+  if(r.offAlerted){r.offAlerted=false;toast(tr('backOnline',b.name),'ok');if(isCur&&!S.full)hideBanner();}
+  if(r.prevFull===false&&S.full)alertFull(b,S,false);
+  else if(r.prevFull===null&&S.full&&isCur)showBanner('full',tr('alertFull',b.name,S.fill));
+  if(r.prevFull&&!S.full){if(isCur)hideBanner();}
+  const warnNow=cfg.warnOn&&S.fill>=cfg.warn&&!S.full;
+  if(r.prevWarn===false&&warnNow&&r.prevFull!==null)alertWarn(b,S);
+  if(S.fill<cfg.warn-3||!cfg.warnOn)r.prevWarn=false;else if(r.prevWarn===null)r.prevWarn=true;else if(warnNow)r.prevWarn=true;
+  if(r.prevTotal!==null&&S.total>r.prevTotal&&isCur){fxItem();loadLog(b);}
+  if(r.prevFill!==null&&r.prevFill-S.fill>=15){toast(tr('emptiedMsg',b.name),'ok');if(isCur){fxSparkle();loadLog(b);}}
+  if(S.full&&r.prevFull===false&&isCur)loadLog(b);
+  r.prevFull=S.full;r.prevTotal=S.total;r.prevFill=S.fill;
+  if(isCur)render();else updateFleet();
+}
+
+/* ---------------------------- location ---------------------------- */
+let locFilled=false;
+function getLoc(b){
+  if(locs[b.id])return locs[b.id];
+  if(b.demo&&b.lat)return {name:b.name,lat:b.lat,lng:b.lng,dev:true};
+  const S=rt(b.id).S;if(S&&(S.lat||S.lng))return {name:b.name,lat:S.lat,lng:S.lng,dev:true};
   return null;
 }
-function renderLoc(fill){
-  const l=curLoc();
-  if(fill){
-    locFilled=true;
-    $('locName').value=(l&&l.name)||(loc&&loc.name)||'';
-    $('locLat').value=l?l.lat:'';$('locLng').value=l?l.lng:'';
-    if(l&&l.dev)$('locHint').textContent='Location comes from the device firmware. Saving here overrides it in this browser.';
+let mapKey='';
+function renderLocUI(fill){
+  const b=cur(),l=getLoc(b);
+  if(fill||!locFilled){
+    locFilled=true;$('locName').value=(l&&l.name)||b.name||'';$('locLat').value=l?l.lat:'';$('locLng').value=l?l.lng:'';
+    $('locHint').textContent=tr('locHint');
   }
-  const name=(l&&l.name)||'';
-  $('whereChip').textContent=l?'📍 '+(name?name+' · ':'')+(+l.lat).toFixed(4)+', '+(+l.lng).toFixed(4):'📍 location not set';
-  const iframe=$('map'),nomap=$('nomap'),link=$('mapsLink');
-  if(!l){iframe.style.display='none';nomap.style.display='grid';link.style.display='none';mapKey='';return;}
+  $('whereChip').innerHTML=l?esc(((l.name&&l.name!==b.name)?l.name+' · ':'')+(+l.lat).toFixed(4)+', '+(+l.lng).toFixed(4)):'';
+  $('whereChip').textContent=l?'📍 '+b.name+' · '+(+l.lat).toFixed(3)+', '+(+l.lng).toFixed(3):'📍 '+b.name;
+  const iframe=$('map'),nomap=$('nomap');
+  if(!l){iframe.hidden=true;nomap.hidden=false;$('mapsLink').hidden=true;$('dirLink').hidden=true;mapKey='';return;}
   const key=l.lat+','+l.lng;
-  if(key!==mapKey){
-    mapKey=key;const la=+l.lat,lo=+l.lng,dx=.004,dy=.0025;
-    iframe.src='https://www.openstreetmap.org/export/embed.html?bbox='+(lo-dx)+','+(la-dy)+','+(lo+dx)+','+(la+dy)+'&layer=mapnik&marker='+la+','+lo;
-  }
-  iframe.style.display='block';nomap.style.display='none';
-  link.href='https://www.google.com/maps?q='+l.lat+','+l.lng;link.style.display='inline';
+  if(key!==mapKey){mapKey=key;const la=+l.lat,lo=+l.lng,dx=.004,dy=.0025;
+    iframe.src='https://www.openstreetmap.org/export/embed.html?bbox='+(lo-dx)+','+(la-dy)+','+(lo+dx)+','+(la+dy)+'&layer=mapnik&marker='+la+','+lo;}
+  iframe.hidden=false;nomap.hidden=true;
+  $('mapsLink').href='https://www.google.com/maps?q='+l.lat+','+l.lng;$('mapsLink').hidden=false;
+  $('dirLink').href='https://www.google.com/maps/dir/?api=1&destination='+l.lat+','+l.lng;$('dirLink').hidden=false;
 }
-$('btnSaveLoc').onclick=()=>{
-  const la=parseFloat($('locLat').value),lo=parseFloat($('locLng').value),name=$('locName').value.trim();
-  if(!(la>=-90&&la<=90&&lo>=-180&&lo<=180)){$('locHint').textContent='Enter a valid latitude (−90…90) and longitude (−180…180).';return;}
-  loc={name,lat:la,lng:lo};store.set('binLoc',JSON.stringify(loc));
-  $('locHint').textContent='Saved in this browser.';renderLoc(false);
-};
-$('btnGeo').onclick=()=>{
-  if(!navigator.geolocation){$('locHint').textContent='This browser has no location support.';return;}
-  $('locHint').textContent='Getting your location…';
-  navigator.geolocation.getCurrentPosition(p=>{
-    $('locLat').value=p.coords.latitude.toFixed(6);$('locLng').value=p.coords.longitude.toFixed(6);
-    $('locHint').textContent='Got it — press Save. (Stand next to the bin for best accuracy.)';
-  },()=>{$('locHint').textContent='Could not get the location. Allow location access, or type the coordinates (location needs https).';},{enableHighAccuracy:true,timeout:15000});
-};
 
-/* ---------- Buttons ---------- */
-$('btnConnect').onclick=()=>{
-  let v=$('ip').value.trim();
-  base=v?(/^https?:\/\//.test(v)?v:'http://'+v):'';
-  base=base.replace(/\/$/,'');store.set('binBase',base);
-  demo=false;everOk=false;fails=0;hist=[];prevFull=null;prevTotal=null;locFilled=false;tick();loadLog();
-};
-$('btnCsv').onclick=()=>{
-  if(demo){const a=document.createElement('a');a.href='data:text/csv,'+encodeURIComponent('time,event,fill,distance\n'+demoCsv());a.download='smartbin.csv';a.click();return;}
-  window.open(base+'/log.csv','_blank');
-};
-$('btnClear').onclick=async()=>{
-  if(!confirm('Delete all saved data?'))return;
-  if(demo){D.log=[];D.today=0;D.total=0;}else{try{await fetch(base+'/api/clear',{method:'POST'});}catch(e){}}
-  events=[];renderLog();drawActivity();tick();
-};
-function setSoundBtn(){$('btnSound').textContent=soundOn?'On':'Off';}
-$('btnSound').onclick=()=>{soundOn=!soundOn;store.set('binSound',soundOn?'1':'0');setSoundBtn();if(soundOn)beep();};
-$('btnTest').onclick=()=>{triggerAlert(true);};
-function setNotifBtn(){
+/* ---------------------------- settings / theme / language ---------------------------- */
+function saveCfg(){store.setJson('binCfg',cfg);}
+function syncSettings(){
+  $('cSound').checked=cfg.sound;$('cVoice').checked=cfg.voice;$('cVibe').checked=cfg.vibe;$('cOff').checked=cfg.offline;
+  $('cWarnOn').checked=cfg.warnOn;$('cWarn').value=cfg.warn;$('cWarn').disabled=!cfg.warnOn;
+  $('warnLbl').textContent=tr('warnAt',cfg.warn);
   const b=$('btnNotif');
-  if(!('Notification' in window)){b.textContent='Not supported';b.disabled=true;return;}
-  b.textContent=Notification.permission==='granted'?'Enabled ✓':Notification.permission==='denied'?'Blocked':'Enable';
+  if(!('Notification' in window)){b.textContent=tr('notSupported');b.disabled=true;}
+  else b.textContent=Notification.permission==='granted'?tr('enabled'):Notification.permission==='denied'?tr('blockedBtn'):tr('enable');
 }
-$('btnNotif').onclick=async()=>{
-  try{await Notification.requestPermission();}catch(e){}
-  setNotifBtn();
-  if(Notification.permission!=='granted')$('btnNotif').title='Browsers only allow notifications on https pages (or localhost).';
-};
-window.addEventListener('resize',()=>S&&drawChart());
+function applyTheme(){
+  document.documentElement.dataset.theme=theme;
+  $('themeUse').setAttribute('href',theme==='dark'?'#i-sun':'#i-moon');
+  const m=document.querySelector('meta[name=theme-color]');if(m)m.content=theme==='dark'?'#05060a':'#eef2fa';
+  if(S_ready)drawChart();
+}
+function applyLang(){
+  document.documentElement.lang=lang;document.documentElement.dir=lang==='fa'?'rtl':'ltr';
+  $$('[data-i18n]').forEach(e=>{e.textContent=tr(e.dataset.i18n);});
+  $$('[data-i18n-ph]').forEach(e=>{e.placeholder=tr(e.dataset.i18nPh);});
+  $$('[data-i18n-title]').forEach(e=>{e.title=tr(e.dataset.i18nTitle);});
+  $('langTxt').textContent=lang==='fa'?'EN':'FA';
+  renderDemoCtl();
+  if(S_ready){buildFleet();syncSettings();render();renderAnalytics(false);locFilled=false;renderLocUI(true);}
+}
+function renderDemoCtl(){
+  const b=cur(),d=b.demo?demoState(b.id):null;
+  $('demoCtl').hidden=!b.demo;
+  if(d)$('dPauseT').textContent=d.paused?tr('dPlay'):tr('dPause');
+}
+function setKiosk(on){
+  document.body.classList.toggle('kiosk',on);$('kioskExit').hidden=!on;
+  try{if(on&&document.documentElement.requestFullscreen)document.documentElement.requestFullscreen();else if(!on&&document.fullscreenElement)document.exitFullscreen();}catch(e){}
+  setTimeout(()=>{drawChart();},120);
+}
 
-(function bits(){const g=$('bits'),cols=['#e2b25b','#6aa5ff','#d0d4dc','#ff7a8a','#7be0a2','#b78ae6'];let sd=7;const r=()=>(sd=(sd*16807)%2147483647)/2147483647;let h='';
-  for(let i=0;i<34;i++){const x=14+r()*98,y=52+r()*150,w=6+r()*9,hh=4+r()*7,a=(r()*70-35)|0;
-    h+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+hh.toFixed(1)+'" rx="1.5" fill="'+cols[i%6]+'" opacity=".55" transform="rotate('+a+' '+(x+w/2).toFixed(1)+' '+(y+hh/2).toFixed(1)+')"/>';}
-  g.innerHTML=h;})();
-setSoundBtn();setNotifBtn();renderLoc(true);
-tick();loadLog();
-setInterval(tick,2000);setInterval(loadLog,5000);
+/* ---------------------------- add / edit bin dialog ---------------------------- */
+let editId=null;
+function normAddr(v){v=(v||'').trim().replace(/\/+$/,'');if(!v)return '';return /^https?:\/\//i.test(v)?v:'http://'+v;}
+function openDlg(id){
+  editId=id||null;const b=id?bins.find(x=>x.id===id):null;
+  $('dlgTitle').textContent=tr(b?'dlgEdit':'dlgAdd');
+  $('fName').value=b?b.name:'';$('fAddr').value=b?b.addr.replace(/^https?:\/\//,''):'';
+  $('btnDel').hidden=!b;$('fMsg').textContent='';$('fMsg').className='msg';
+  $('dlgBin').showModal();$('fName').focus();
+}
+async function testConn(){
+  const m=$('fMsg');m.className='msg';m.textContent=tr('testing');
+  const b={addr:normAddr($('fAddr').value)};
+  try{const S=JSON.parse(await fetchText(b,'/api/status',4000));if(typeof S.fill!=='number')throw 0;m.className='msg ok';m.textContent=tr('testOk',S.fill);}
+  catch(e){m.className='msg bad';m.textContent=(location.protocol==='https:'&&b.addr.startsWith('http:'))?tr('testMixed'):tr('testFail');}
+}
+function saveBin(ev){
+  ev.preventDefault();
+  const name=$('fName').value.trim();if(!name){$('fMsg').className='msg bad';$('fMsg').textContent=tr('needName');return;}
+  const addr=normAddr($('fAddr').value);
+  if(editId){const b=bins.find(x=>x.id===editId);if(b){b.name=name;b.addr=addr;R[b.id]=undefined;delete R[b.id];}}
+  else{const b={id:'b'+Date.now().toString(36),name,addr};bins.push(b);curId=b.id;store.set('binCur',b.id);}
+  store.setJson('binList',bins);$('dlgBin').close();
+  if(!allBins().some(b=>b.id===curId))curId=allBins()[0].id;
+  buildFleet();renderDemoCtl();locFilled=false;render();renderAnalytics(false);animateChart();
+  allBins().forEach(b=>pollOne(b));loadLog(cur());toast(tr('saved'),'ok');
+}
+function delBin(){
+  if(!editId||!confirm(tr('confirmRemove')))return;
+  bins=bins.filter(b=>b.id!==editId);delete R[editId];store.setJson('binList',bins);$('dlgBin').close();
+  curId=allBins()[0].id;store.set('binCur',curId);editId=null;
+  buildFleet();renderDemoCtl();locFilled=false;render();renderAnalytics(false);animateChart();allBins().forEach(b=>pollOne(b));loadLog(cur());
+}
+async function probeLocal(){
+  if(bins.length||location.protocol==='file:')return;
+  try{
+    const S=JSON.parse(await fetchText({addr:''},'/api/status',2500));
+    if(S&&typeof S.fill==='number'){const id='local';bins=[{id,name:S.name&&S.name!=='Smart Bin'?S.name:'Smart Bin',addr:''}];store.setJson('binList',bins);curId=id;store.set('binCur',id);}
+  }catch(e){}
+}
+
+/* ---------------------------- wiring ---------------------------- */
+let S_ready=false;
+function bind(){
+  $('alertX').onclick=hideBanner;
+  $('btnLang').onclick=()=>{lang=lang==='fa'?'en':'fa';store.set('binLang',lang);applyLang();};
+  $('btnTheme').onclick=()=>{theme=theme==='dark'?'light':'dark';store.set('binTheme',theme);applyTheme();};
+  $('btnKiosk').onclick=()=>setKiosk(true);$('kioskExit').onclick=()=>setKiosk(false);
+  document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&document.body.classList.contains('kiosk'))setKiosk(false);});
+  $('btnPrint').onclick=()=>window.print();
+  $('fleet').addEventListener('click',e=>{
+    const ed=e.target.closest('[data-edit]');if(ed){e.stopPropagation();openDlg(ed.dataset.edit);return;}
+    if(e.target.closest('[data-add]')){openDlg(null);return;}
+    const c=e.target.closest('.bcard[data-id]');if(c)selectBin(c.dataset.id);
+  });
+  $('frmBin').addEventListener('submit',saveBin);$('btnCancel').onclick=()=>$('dlgBin').close();$('btnTestConn').onclick=testConn;$('btnDel').onclick=delBin;
+  $$('#rng button').forEach(b=>{b.onclick=()=>{chartRange=+b.dataset.r;store.set('binRange',chartRange);syncRange();animateChart();};});
+  const ch=$('chart');ch.addEventListener('pointermove',chartHover);ch.addEventListener('pointerleave',chartLeave);ch.addEventListener('pointercancel',chartLeave);
+  $('evFilters').addEventListener('click',e=>{const b=e.target.closest('button[data-f]');if(!b)return;evFilter=b.dataset.f;evLimit=15;buildFilters();renderTable(false);});
+  $('btnMore').onclick=()=>{evLimit+=25;renderTable(false);};
+  $('btnCsv').onclick=()=>{
+    const r=rt(curId),rows=['time_iso,event,fill_percent,distance_cm'].concat(r.ev.map(e=>(e.t>1.7e9?new Date(e.t*1000).toISOString():'uptime_'+e.t)+','+e.type+','+e.fill+','+e.dist));
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));a.download='smartbin-'+cur().name.replace(/\W+/g,'_')+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  };
+  $('btnClear').onclick=async()=>{
+    if(!confirm(tr('confirmClear')))return;const b=cur();
+    if(b.demo){const d=demoState(b.id);d.ev=[];d.today=0;d.total=0;}
+    else{try{await fetch((b.addr||'')+'/api/clear',{method:'POST'});}catch(e){}}
+    rt(b.id).ev=[];rt(b.id).an=null;await pollOne(b);renderAnalytics(false);toast(tr('cleared'),'ok');
+  };
+  $('dThrow').onclick=()=>demoAct('throw');$('dFill').onclick=()=>demoAct('fill');$('dEmpty').onclick=()=>demoAct('empty');$('dPause').onclick=()=>demoAct('pause');
+  $('btnSaveLoc').onclick=()=>{
+    const la=parseFloat($('locLat').value),lo=parseFloat($('locLng').value),name=$('locName').value.trim();
+    if(!(la>=-90&&la<=90&&lo>=-180&&lo<=180)){$('locHint').textContent=tr('locBad');return;}
+    locs[curId]={name,lat:la,lng:lo};store.setJson('binLocs',locs);$('locHint').textContent=tr('locSaved');renderLocUI(false);
+  };
+  $('btnGeo').onclick=()=>{
+    if(!navigator.geolocation){$('locHint').textContent=tr('locFail');return;}
+    $('locHint').textContent=tr('locGetting');
+    navigator.geolocation.getCurrentPosition(p=>{$('locLat').value=p.coords.latitude.toFixed(6);$('locLng').value=p.coords.longitude.toFixed(6);$('locHint').textContent=tr('locGot');},
+      ()=>{$('locHint').textContent=tr('locFail');},{enableHighAccuracy:true,timeout:15000});
+  };
+  const bindSw=(id,key)=>{$(id).onchange=()=>{cfg[key]=$(id).checked;saveCfg();syncSettings();render();};};
+  bindSw('cSound','sound');bindSw('cVoice','voice');bindSw('cVibe','vibe');bindSw('cOff','offline');bindSw('cWarnOn','warnOn');
+  $('cWarn').oninput=()=>{cfg.warn=+$('cWarn').value;$('warnLbl').textContent=tr('warnAt',cfg.warn);renderSeg(rt(curId).S?rt(curId).S.fill:0);};
+  $('cWarn').onchange=()=>{saveCfg();render();};
+  $('btnNotif').onclick=async()=>{try{await Notification.requestPermission();}catch(e){}syncSettings();};
+  $('btnTest').onclick=()=>{const b=cur(),S=rt(b.id).S||{fill:100};alertFull(b,Object.assign({},S,{fill:S.fill>=90?S.fill:100}),true);};
+  addEventListener('resize',()=>{drawChart();});
+}
+function syncRange(){$$('#rng button').forEach(b=>b.classList.toggle('on',+b.dataset.r===chartRange));}
+
+function init(){
+  applyTheme();buildSeg();bind();
+  S_ready=false;applyLang();
+  buildFleet();syncSettings();syncRange();renderDemoCtl();initParticles();render();
+  S_ready=true;
+  probeLocal().then(()=>{
+    if(!allBins().some(b=>b.id===curId))curId=allBins()[0].id;
+    buildFleet();renderDemoCtl();render();
+    allBins().forEach(b=>pollOne(b));loadLog(cur()).then(()=>animateChart());
+    setInterval(tickAll,2000);
+    setInterval(()=>loadLog(cur()),6000);
+    setInterval(()=>{renderKpis();},1000);
+  });
+}
+init();
 </script>
 </body>
 </html>

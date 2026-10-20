@@ -59,23 +59,26 @@ body.is-full .panel.glow{border-color:color-mix(in srgb,var(--full) 55%,var(--li
 
 /* bin */
 .c-bin{text-align:center}
-#binsvg{width:100%;max-width:270px;height:auto;display:block;margin:0 auto;overflow:visible}
-#binsvg .outline{fill:none;stroke:var(--acc);stroke-width:3;stroke-linejoin:round;filter:drop-shadow(0 0 4px var(--acc));transition:stroke .4s}
-#binsvg .rib{stroke:#ffffff;opacity:.08;stroke-width:2}
-#binsvg .lid rect{fill:#141a26;stroke:var(--acc);stroke-width:2.5;transition:stroke .4s}
-#binsvg .lid{transform-box:fill-box;transform-origin:15% 100%}
-#binsvg .lid.bump{animation:lid .7s ease-out}
-@keyframes lid{0%{transform:none}35%{transform:translateY(-12px) rotate(-5deg)}100%{transform:none}}
-#binsvg .lvl{transition:transform .9s cubic-bezier(.3,.8,.3,1)}
-#binsvg .wave{animation:wave 3.2s linear infinite}
-@keyframes wave{to{transform:translateX(-120px)}}
-#binsvg .arc{fill:none;stroke:var(--blue);stroke-width:2.5;stroke-linecap:round;opacity:0;animation:ping 2.2s ease-out infinite}
-#binsvg .arc:nth-child(2){animation-delay:.35s}#binsvg .arc:nth-child(3){animation-delay:.7s}
-@keyframes ping{0%{opacity:0}30%{opacity:.8}100%{opacity:0}}
-#binsvg .neon{fill:none;stroke:var(--full);stroke-width:4;opacity:0;transition:opacity .4s;
+#binsvg{width:100%;max-width:330px;height:auto;display:block;margin:0 auto;overflow:visible}
+#binsvg .outline{fill:none;stroke:var(--c);stroke-width:2;stroke-linejoin:round;transition:stroke .4s}
+#binsvg .edge{fill:none;stroke:#eef2fa;stroke-opacity:.35;stroke-width:1.2}
+#binsvg .neon{fill:none;stroke:var(--full);stroke-width:5;stroke-linejoin:round;opacity:0;transition:opacity .4s;
   filter:drop-shadow(0 0 5px var(--full)) drop-shadow(0 0 16px var(--full)) drop-shadow(0 0 34px var(--full))}
 body.is-full #binsvg .neon{opacity:1;animation:flick 3.4s infinite}
 @keyframes flick{0%,45%,52%,90%,100%{opacity:1}47%{opacity:.3}49%{opacity:.9}92%{opacity:.6}95%{opacity:1}}
+#binsvg .trash{transition:transform .9s cubic-bezier(.3,.8,.3,1)}
+#binsvg .wavemove{animation:wave 2.4s linear infinite}
+@keyframes wave{to{transform:translateX(-32px)}}
+#binsvg .cone{fill:var(--c);opacity:.12;animation:cone 1.6s ease-in-out infinite}
+@keyframes cone{50%{opacity:.26}}
+#binsvg .beam{stroke:var(--c);stroke-width:1.2;stroke-dasharray:3 4;fill:none;animation:dash .8s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-14}}
+#binsvg .itemdrop{opacity:0;transform-box:fill-box;transform-origin:center}
+#binsvg .itemdrop.go{animation:drop .9s cubic-bezier(.5,0,.9,.6) forwards}
+@keyframes drop{0%{opacity:0;transform:translateY(0) rotate(0)}12%{opacity:1}82%{opacity:1}100%{opacity:0;transform:translateY(var(--drop,80px)) rotate(50deg)}}
+#binsvg .slit.flash{animation:slitflash .9s ease-out}
+@keyframes slitflash{0%,100%{fill:#0a0d13}25%{fill:var(--c)}}
+body.is-full #binsvg .glowsym{filter:drop-shadow(0 0 2px var(--full)) drop-shadow(0 0 6px var(--full));animation:pulse 1.4s ease-in-out infinite}
 .pctbig{font:800 66px/1 var(--mono);letter-spacing:-3px;margin-top:6px}
 .pctbig small{font-size:26px;color:var(--mut);letter-spacing:0}
 .neonrow{display:flex;align-items:center;gap:12px;justify-content:center;margin-top:12px;font:600 12px var(--mono);color:var(--mut);letter-spacing:1px}
@@ -153,25 +156,85 @@ td:nth-child(n+3){font-family:var(--mono)}
 <div class="grid">
   <section class="panel glow c-bin">
     <div class="lbl">Fill level</div>
-    <svg id="binsvg" viewBox="0 0 240 310" style="--c:#2cf5c0" role="img" aria-label="Bin fill level">
+    <svg id="binsvg" viewBox="0 0 292 345" style="--c:#2cf5c0" role="img" aria-label="Smart bin with live fill level">
       <defs>
-        <clipPath id="binclip"><path d="M44 74 H196 L178 276 Q177 282 170 282 H70 Q63 282 62 276 Z"/></clipPath>
-        <linearGradient id="fillg" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="gSteelL" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b3bbc7"/><stop offset="1" stop-color="#7a8391"/></linearGradient>
+        <linearGradient id="gSteelR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#808896"/><stop offset="1" stop-color="#535b69"/></linearGradient>
+        <linearGradient id="gTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#dcae9a"/><stop offset="1" stop-color="#b98a79"/></linearGradient>
+        <linearGradient id="gIn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#150f0b"/><stop offset="1" stop-color="#2e2119"/></linearGradient>
+        <linearGradient id="gTrash" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" style="stop-color:var(--c);stop-opacity:.95"/>
-          <stop offset="1" style="stop-color:var(--c);stop-opacity:.3"/>
+          <stop offset="1" style="stop-color:var(--c);stop-opacity:.4"/>
         </linearGradient>
-      </defs>
-      <rect class="neon" x="12" y="26" width="216" height="272" rx="30"/>
-      <g clip-path="url(#binclip)">
-        <rect x="0" y="0" width="240" height="310" fill="#090c13"/>
-        <g id="lvl" class="lvl" style="transform:translateY(275px)">
-          <g class="wave"><path d="M0 8 Q30 -2 60 8 T120 8 T180 8 T240 8 T300 8 T360 8 T420 8 T480 8 V330 H0 Z" fill="url(#fillg)"/></g>
+        <clipPath id="winclip"><rect x="12" y="40" width="106" height="120"/></clipPath>
+        <filter id="blur6" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>
+        <g id="arr">
+          <path d="M-19.05 -7 L0 -40 L4.85 -31.9" fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round"/>
+          <polygon points="15.24,-37.9 -5.54,-25.9 10.85,-21.5" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
         </g>
+        <symbol id="recycle" viewBox="-52 -52 104 104">
+          <use href="#arr"/><use href="#arr" transform="rotate(120)"/><use href="#arr" transform="rotate(240)"/>
+        </symbol>
+      </defs>
+
+      <ellipse cx="146" cy="296" rx="128" ry="38" fill="#000" opacity=".5" filter="url(#blur6)"/>
+      <path class="neon" d="M29 80 L141.6 15 L262.6 85 L262.6 255 L150 320 L29 250 Z"/>
+
+      <!-- LEFT FACE: LCD, slot, recycle logo -->
+      <g transform="matrix(.866 .5 0 1 29 80)">
+        <rect width="140" height="170" fill="url(#gSteelL)"/>
+        <ellipse cx="30" cy="120" rx="34" ry="26" fill="#fff" opacity=".07" filter="url(#blur6)"/>
+        <ellipse cx="108" cy="60" rx="22" ry="30" fill="#000" opacity=".06" filter="url(#blur6)"/>
+        <rect x="20" y="14" width="80" height="30" rx="2" fill="#0a0e17"/>
+        <rect x="23" y="17" width="74" height="24" rx="1" fill="#2a5fd6"/>
+        <text id="lcd1" x="25" y="26.5" textLength="70" lengthAdjust="spacingAndGlyphs" font-size="9" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700" fill="#e6f2ff">Starting...</text>
+        <rect x="26" y="30.5" width="68" height="7" fill="#1c43a3"/>
+        <rect id="lcdbar" x="26" y="30.5" width="0" height="7" fill="#e6f2ff" style="transition:width .6s"/>
+        <rect x="8" y="53" width="112" height="2" fill="#0d1119"/>
+        <rect x="8" y="55" width="112" height="1" fill="#fff" opacity=".28"/>
+        <use href="#recycle" x="36" y="80" width="84" height="84" color="#0a2a12" opacity=".55"/>
+        <use href="#recycle" x="33" y="77" width="84" height="84" color="#1fa245" class="glowsym"/>
       </g>
-      <path class="outline" d="M44 74 H196 L178 276 Q177 282 170 282 H70 Q63 282 62 276 Z"/>
-      <line class="rib" x1="96" y1="96" x2="100" y2="262"/><line class="rib" x1="120" y1="96" x2="120" y2="262"/><line class="rib" x1="144" y1="96" x2="140" y2="262"/>
-      <g id="lid" class="lid"><rect x="30" y="54" width="180" height="16" rx="6"/><rect x="98" y="41" width="44" height="14" rx="5"/></g>
-      <g><path class="arc" d="M106 90 Q120 99 134 90"/><path class="arc" d="M98 99 Q120 114 142 99"/><path class="arc" d="M90 108 Q120 129 150 108"/></g>
+
+      <!-- RIGHT FACE: slot + open service window showing the live fill level -->
+      <g transform="matrix(.866 -.5 0 1 150 150)">
+        <rect width="130" height="170" fill="url(#gSteelR)"/>
+        <ellipse cx="100" cy="150" rx="30" ry="22" fill="#fff" opacity=".05" filter="url(#blur6)"/>
+        <rect id="slitR" class="slit" x="22" y="17" width="86" height="2.4" fill="#0a0d13"/>
+        <rect x="22" y="19.4" width="86" height="1" fill="#fff" opacity=".22"/>
+        <rect x="9" y="37" width="112" height="126" fill="#a4acb8"/>
+        <rect x="12" y="40" width="106" height="120" fill="url(#gIn)"/>
+        <g clip-path="url(#winclip)">
+          <rect x="62" y="40" width="1.5" height="120" fill="#000" opacity=".35"/>
+          <polygon id="cone" class="cone" points="56,56 74,56 90,150 40,150"/>
+          <path id="beam" class="beam" d="M65 56 V150"/>
+          <rect x="38" y="40" width="54" height="16" rx="2" fill="#1b5fa8"/>
+          <circle cx="51" cy="48" r="5.5" fill="#cfd4dc" stroke="#3b4350" stroke-width="1"/><circle cx="51" cy="48" r="2.6" fill="#4a5260"/>
+          <circle cx="79" cy="48" r="5.5" fill="#cfd4dc" stroke="#3b4350" stroke-width="1"/><circle cx="79" cy="48" r="2.6" fill="#4a5260"/>
+          <g id="trash" class="trash" style="transform:translateY(116px)">
+            <g class="wavemove"><path d="M-20 44 q8 -5 16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 t16 0 V230 H-20 Z" fill="url(#gTrash)"/></g>
+            <g id="bits"></g>
+          </g>
+          <g id="itemdrop" class="itemdrop"><rect x="58" y="42" width="15" height="10" rx="2" fill="#ffd36b" stroke="#a87a1e" stroke-width="1"/></g>
+        </g>
+        <rect x="12" y="40" width="106" height="9" fill="#000" opacity=".28"/>
+      </g>
+
+      <!-- TOP: laser-cut plate, MDF strips, green acrylic recycle symbol -->
+      <g transform="matrix(.866 .5 .866 -.5 29 80)">
+        <rect width="140" height="130" fill="url(#gTop)"/>
+        <g fill="#c9a36b" stroke="#8a6736" stroke-width=".8">
+          <rect x="10" y="8" width="92" height="8"/><rect x="124" y="10" width="8" height="92"/>
+          <rect x="38" y="114" width="92" height="8"/><rect x="8" y="28" width="8" height="92"/>
+        </g>
+        <use href="#recycle" x="27" y="23" width="88" height="88" color="#0a2a12" opacity=".6"/>
+        <use href="#recycle" x="26" y="22" width="88" height="88" color="#27ad4d" class="glowsym"/>
+      </g>
+
+      <g fill="none" stroke-linejoin="round">
+        <path class="edge" d="M150 150 V320 M29 80 L150 150 L262.6 85"/>
+        <path class="outline" d="M29 80 L141.6 15 L262.6 85 L262.6 255 L150 320 L29 250 Z"/>
+      </g>
     </svg>
     <div class="pctbig"><span id="pct">0</span><small>%</small></div>
     <div class="neonrow"><span>NEON</span><div class="tube" id="tube"></div><b id="neonTxt">OFF</b></div>
@@ -325,7 +388,12 @@ function beep(){
 let tInt=null;
 function flashTitle(){if(tInt)return;let on=false;tInt=setInterval(()=>{on=!on;document.title=on?'🔴 BIN FULL!':'Smart Bin';},900);}
 function stopFlash(){if(tInt){clearInterval(tInt);tInt=null;}document.title='Smart Bin';}
-function bump(){const l=$('lid');l.classList.remove('bump');void l.getBoundingClientRect();l.classList.add('bump');}
+function bump(){
+  const it=$('itemdrop'),sl=$('slitR'),f=S?S.fill:0;
+  it.style.setProperty('--drop',Math.max(8,(160-116*f/100)-52)+'px');
+  it.classList.remove('go');void it.getBoundingClientRect();it.classList.add('go');
+  sl.classList.remove('flash');void sl.getBoundingClientRect();sl.classList.add('flash');
+}
 $('alertX').onclick=()=>{hideBanner();stopFlash();};
 
 /* ---------- Rendering ---------- */
@@ -339,7 +407,13 @@ function render(){
   const f=S.fill,full=S.full,warn=!full&&f>=60;
   document.body.classList.toggle('is-full',full);
   $('binsvg').style.setProperty('--c',full?'#ff2a8a':warn?'#ffbf3c':'#2cf5c0');
-  $('lvl').style.transform='translateY('+(275-195*f/100)+'px)';
+  const dy=116*(1-f/100),sy=Math.max(62,46+dy);
+  $('trash').style.transform='translateY('+dy.toFixed(1)+'px)';
+  $('cone').setAttribute('points','56,56 74,56 90,'+sy.toFixed(1)+' 40,'+sy.toFixed(1));
+  $('beam').setAttribute('d','M65 56 V'+sy.toFixed(1));
+  const NB='\u00A0',l1='Fill:'+String(f).padStart(3,NB)+'%'+NB+NB+(full?'FULL!':'OK');
+  $('lcd1').textContent=(l1+NB.repeat(16)).slice(0,16);
+  $('lcdbar').setAttribute('width',(68*f/100).toFixed(1));
   $('pct').textContent=f;
   const h=$('headline');
   h.textContent=full?'BIN FULL':warn?'FILLING UP':'ALL CLEAR';
@@ -457,6 +531,10 @@ $('btnNotif').onclick=async()=>{
 };
 window.addEventListener('resize',()=>S&&drawChart());
 
+(function bits(){const g=$('bits'),cols=['#e2b25b','#6aa5ff','#d0d4dc','#ff7a8a','#7be0a2','#b78ae6'];let sd=7;const r=()=>(sd=(sd*16807)%2147483647)/2147483647;let h='';
+  for(let i=0;i<34;i++){const x=14+r()*98,y=52+r()*150,w=6+r()*9,hh=4+r()*7,a=(r()*70-35)|0;
+    h+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+hh.toFixed(1)+'" rx="1.5" fill="'+cols[i%6]+'" opacity=".55" transform="rotate('+a+' '+(x+w/2).toFixed(1)+' '+(y+hh/2).toFixed(1)+')"/>';}
+  g.innerHTML=h;})();
 setSoundBtn();setNotifBtn();renderLoc(true);
 tick();loadLog();
 setInterval(tick,2000);setInterval(loadLog,5000);

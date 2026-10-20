@@ -2,7 +2,7 @@
 
 ## Files
 - `smart_bin/smart_bin.ino` – ESP32 firmware (Arduino IDE, no extra libraries)
-- `index.html` – dashboard (shows demo data if no ESP32 is found)
+- `index.html` – dashboard (shows demo data if no ESP32 is found). The animated bin copies the real build: metal box, recycle top, LCD mirroring the real one, slot and open service window showing the live level.
 
 ## Wiring
 | Part | ESP32 |
@@ -11,14 +11,24 @@
 | HC-SR04 GND | GND |
 | HC-SR04 TRIG | GPIO 5 |
 | HC-SR04 ECHO | GPIO 18 **via divider** (1k in series, 2k to GND) – ECHO is 5V, ESP32 pins are 3.3V |
-| Neon driver (relay or MOSFET) | GPIO 26 |
+| Relay module VCC / GND / IN | 5V (VIN) / GND / GPIO 26 |
 | LCD 16x2 I2C VCC | 5V / VIN |
 | LCD 16x2 I2C GND | GND |
 | LCD 16x2 I2C SDA | GPIO 21 |
 | LCD 16x2 I2C SCL | GPIO 22 |
 
 Mount the sensor on the **lid, pointing down**. Don't drive the neon straight from a GPIO.
-If the neon is mains powered, use a proper relay module and keep the mains side insulated.
+
+## Relay (neon switch)
+- Wire the neon through the relay's **COM** and **NO** (normally open) terminals, never NC.
+  With the bin not full the relay must be **off** and the neon dark.
+- Most cheap relay boards are **active-low** (the relay turns ON when the input is LOW, and the green LED
+  on the board lights while the relay is ON). If that green LED lights at power-up, that is exactly this case.
+  The firmware is set for it: `NEON_ACTIVE_HIGH = false`. It drives the pin open-drain so the relay is fully OFF.
+- Quick test after uploading: the relay should be silent with the green LED off. Hold your hand about 5 cm in front
+  of the sensor until the fill reaches 90% (3 readings) and the relay should click, green LED on, neon on.
+  If it behaves the opposite way, set `NEON_ACTIVE_HIGH = true`.
+- If the neon is mains powered, keep the mains side insulated and out of reach (use a proper enclosure).
 
 The LCD address (0x27 or 0x3F) is detected automatically. If the screen stays blank, turn the small blue
 contrast screw on the back of the I2C module.

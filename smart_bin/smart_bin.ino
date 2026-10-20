@@ -15,7 +15,8 @@
     HC-SR04 TRIG -> GPIO 5
     HC-SR04 ECHO -> GPIO 18  *through a voltage divider* (1k from ECHO to GPIO18,
                                                           2k from GPIO18 to GND)
-    Neon driver  -> GPIO 26  (relay module / MOSFET, NOT the neon directly)
+    Relay module VCC -> 5V (VIN),  GND -> GND,  IN -> GPIO 26
+    Neon (through the relay)  -> wire it to COM and NO (normally open), never NC
     LCD I2C  VCC -> 5V (VIN)
     LCD I2C  GND -> GND
     LCD I2C  SDA -> GPIO 21
@@ -56,7 +57,11 @@ const char* NTFY_TOPIC = "";          // e.g. "smartbin-mostafa-4821"
 #define NEON_PIN 26
 #define LCD_SDA  21
 #define LCD_SCL  22
-const bool NEON_ACTIVE_HIGH = true;   // set false if your relay turns ON with LOW
+// Relay board type. Most cheap 5V relay boards are ACTIVE-LOW: the relay switches ON when the input pin
+// is LOW, and the board's green LED lights up while the relay is ON.
+//   - Relay LED/click comes ON while the bin is NOT full  ->  keep false  (your board)
+//   - Relay does nothing / works backwards                ->  set true
+const bool NEON_ACTIVE_HIGH = false;
 
 const float BIN_DEPTH_CM   = 40.0;    // distance from sensor to the EMPTY bin bottom
 const float FULL_DIST_CM   = 5.0;     // distance from sensor when the bin is 100% full
@@ -161,7 +166,13 @@ uint32_t nowSec() {
 }
 
 void setNeon(bool on) {
-  digitalWrite(NEON_PIN, (on == NEON_ACTIVE_HIGH) ? HIGH : LOW);
+  if (NEON_ACTIVE_HIGH) {
+    digitalWrite(NEON_PIN, on ? HIGH : LOW);
+  } else {
+    // Open-drain: LOW pulls the relay input to GND (relay ON). HIGH only RELEASES the pin, so the relay
+    // board's own 5V pull-up switches it fully OFF (a plain 3.3V HIGH can leave a 5V relay board half-on).
+    digitalWrite(NEON_PIN, on ? LOW : HIGH);
+  }
 }
 
 float readOnce() {
@@ -337,8 +348,8 @@ void setup() {
   Serial.begin(115200);
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
-  pinMode(NEON_PIN, OUTPUT);
-  setNeon(false);
+  pinMode(NEON_PIN, NEON_ACTIVE_HIGH ? OUTPUT : OUTPUT_OPEN_DRAIN);
+  setNeon(false);                       // neon/relay OFF from the very start
 
   lcdInit();
   lcdLine(0, "Smart Bin");

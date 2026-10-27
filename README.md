@@ -80,3 +80,9 @@ version shows demo data. For real data open `index.html` from your computer, or 
 - `GET /api/status` – live JSON
 - `GET /log.csv` – saved events
 - `POST /api/clear` – wipe data
+
+## Neon with a MOSFET (DC neon strip)
+Use a logic-level N-MOSFET (IRLZ44N, IRLB8721, IRL540N; small loads AO3400). Not IRF520/IRFZ44N.
+Strip (+) to its supply (+); strip (-) to MOSFET Drain; Source to GND (supply GND joined with ESP32 GND);
+GPIO 26 -> 100-220 ohm -> Gate; 10k from Gate to GND. Firmware: `NEON_ACTIVE_HIGH = true` (default).
+For an active-low relay board instead, set it to `false`.

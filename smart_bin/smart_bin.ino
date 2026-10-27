@@ -60,8 +60,8 @@ const char* NTFY_TOPIC = "";          // e.g. "smartbin-mostafa-4821"
 #define LCD_SCL  22
 // Neon driver type.
 //   true  = logic-level N-MOSFET (DC neon strip): GPIO HIGH = neon ON.
-//   false = active-low relay board (green LED lit = relay ON): GPIO LOW = relay ON.   <-- relay setup (current)
-const bool NEON_ACTIVE_HIGH = false;
+//   false = active-low relay board (green LED lit = relay ON): GPIO LOW = relay ON.
+const bool NEON_ACTIVE_HIGH = true;
 
 const float BIN_DEPTH_CM   = 40.0;    // distance from sensor to the EMPTY bin bottom
 const float FULL_DIST_CM   = 5.0;     // distance from sensor when the bin is 100% full

@@ -15,9 +15,9 @@
     HC-SR04 TRIG -> GPIO 5
     HC-SR04 ECHO -> GPIO 18  *through a voltage divider* (1k from ECHO to GPIO18,
                                                           2k from GPIO18 to GND)
-    MOSFET (logic-level, e.g. IRLZ44N): Gate -> 100-220 ohm -> GPIO 26, Gate -> 10k -> GND,
-                                        Source -> GND (joined with the strip supply GND), Drain -> neon strip (-)
-    Neon strip (+) -> its DC supply (+)
+    Relay module VCC -> 5V (VIN), GND -> GND, IN -> GPIO 26, plus 10k resistor from IN to relay VCC
+    Neon (through the relay) -> COM and NO (never NC)
+    (MOSFET instead: Gate -> 100-220 ohm -> GPIO 26, Gate -> 10k -> GND, Source -> GND, Drain -> strip (-); set NEON_ACTIVE_HIGH = true)
     LCD I2C  VCC -> 5V (VIN)
     LCD I2C  GND -> GND
     LCD I2C  SDA -> GPIO 21
@@ -59,9 +59,9 @@ const char* NTFY_TOPIC = "";          // e.g. "smartbin-mostafa-4821"
 #define LCD_SDA  21
 #define LCD_SCL  22
 // Neon driver type.
-//   true  = logic-level N-MOSFET (DC neon strip): GPIO HIGH = neon ON.   <-- your setup
-//   false = active-low relay board (green LED lit = relay ON): GPIO LOW = relay ON.
-const bool NEON_ACTIVE_HIGH = true;
+//   true  = logic-level N-MOSFET (DC neon strip): GPIO HIGH = neon ON.
+//   false = active-low relay board (green LED lit = relay ON): GPIO LOW = relay ON.   <-- relay setup (current)
+const bool NEON_ACTIVE_HIGH = false;
 
 const float BIN_DEPTH_CM   = 40.0;    // distance from sensor to the EMPTY bin bottom
 const float FULL_DIST_CM   = 5.0;     // distance from sensor when the bin is 100% full

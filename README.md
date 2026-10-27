@@ -42,8 +42,8 @@ contrast screw on the back of the I2C module.
 Optional: upload `index.html` to the ESP32's LittleFS to open the dashboard at `http://<ESP32-IP>/`.
 
 ## What it does
-- Reads distance every 0.3 s (median of 5 readings).
-- Distance drops by >= 2 cm -> **item thrown**, counted and saved.
+- Reads distance every ~0.3 s (9 pings, extremes dropped, middle averaged; range 2 cm to ~4 m).
+- Distance drops by >= 1 cm (`ITEM_DELTA_CM`) -> **item thrown**, counted and saved.
 - Fill >= 90% for 3 readings -> **FULL**: neon ON, LCD warning, phone notification.
   Neon turns OFF when emptied or below 70%.
 - Distance jumps up >= 15 cm -> **bin emptied**.

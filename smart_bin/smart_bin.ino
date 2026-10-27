@@ -67,7 +67,7 @@ const float BIN_DEPTH_CM   = 40.0;    // distance from sensor to the EMPTY bin b
 const float FULL_DIST_CM   = 5.0;     // distance from sensor when the bin is 100% full
 const int   FULL_ON_PCT    = 90;      // neon turns ON at this fill level
 const int   FULL_OFF_PCT   = 70;      // neon turns OFF below this level (hysteresis)
-const float ITEM_DELTA_CM  = 2.0;     // trash got this much closer  -> "item thrown"
+const float ITEM_DELTA_CM  = 1.0;     // trash got this much closer  -> "item thrown"
 const float EMPTY_DELTA_CM = 15.0;    // trash got this much farther -> "bin emptied"
 const size_t MAX_LOG_BYTES = 100000;  // old log lines are trimmed after this
 // =================================================================
@@ -179,26 +179,30 @@ float readOnce() {
   digitalWrite(TRIG_PIN, LOW);  delayMicroseconds(3);
   digitalWrite(TRIG_PIN, HIGH); delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
-  unsigned long d = pulseIn(ECHO_PIN, HIGH, 30000UL);   // 30 ms timeout (~5 m)
+  unsigned long d = pulseIn(ECHO_PIN, HIGH, 26000UL);   // 26 ms timeout (~4.4 m, the sensor's real max)
   if (d == 0) return -1;
   return d * 0.0343f / 2.0f;
 }
 
-// median of 5 readings = ignores random spikes
+// 9 readings, drop the extremes, average the middle ones = ignores spikes AND gives sub-cm sensitivity
 float readDistance() {
-  float v[5]; int n = 0;
-  for (int i = 0; i < 5; i++) {
+  const int N = 9;
+  float v[N]; int n = 0;
+  for (int i = 0; i < N; i++) {
     float x = readOnce();
-    if (x > 1 && x < 400) v[n++] = x;
-    delay(30);
+    if (x > 2 && x < 450) v[n++] = x;     // HC-SR04 range: 2 cm .. ~4 m
+    delay(15);
   }
-  if (n < 3) return -1;
+  if (n < 5) return -1;
   for (int i = 1; i < n; i++) {
     float k = v[i]; int j = i - 1;
     while (j >= 0 && v[j] > k) { v[j + 1] = v[j]; j--; }
     v[j + 1] = k;
   }
-  return v[n / 2];
+  int a = n / 4, b = n - n / 4;           // skip lowest and highest quarter
+  float sum = 0;
+  for (int i = a; i < b; i++) sum += v[i];
+  return sum / (b - a);
 }
 
 int distToPct(float d) {
@@ -388,7 +392,7 @@ void loop() {
     WiFi.reconnect();
   }
 
-  if (millis() - lastSample < 300) return;
+  if (millis() - lastSample < 150) return;
   lastSample = millis();
 
   float d = readDistance();
@@ -402,7 +406,7 @@ void loop() {
 
   if (diff >= ITEM_DELTA_CM) {
     // Something got closer. Wait and measure again so a falling item passing the sensor isn't counted twice.
-    delay(600);
+    delay(400);
     float d2 = readDistance();
     if (d2 > 0 && (lastStable - d2) >= ITEM_DELTA_CM) {
       lastStable = min(d2, BIN_DEPTH_CM);
@@ -418,7 +422,7 @@ void loop() {
       lcdShowMsg("Item thrown in!", b, 1200);
     }
   } else if (-diff >= EMPTY_DELTA_CM) {
-    delay(600);
+    delay(400);
     float d2 = readDistance();
     if (d2 > 0 && (d2 - lastStable) >= EMPTY_DELTA_CM) {
       lastStable = min(d2, BIN_DEPTH_CM);

@@ -60,8 +60,8 @@ const char* NTFY_TOPIC = "";          // e.g. "smartbin-mostafa-4821"
 #define LCD_SCL  22
 // Neon driver type.
 //   true  = logic-level N-MOSFET (DC neon strip): GPIO HIGH = neon ON.
-//   false = active-low relay board (green LED lit = relay ON): GPIO LOW = relay ON.
-const bool NEON_ACTIVE_HIGH = true;
+//   false = active-low relay board (green LED lit = relay ON): GPIO LOW = relay ON.   <-- your relay (tested)
+const bool NEON_ACTIVE_HIGH = false;
 
 const float BIN_DEPTH_CM   = 40.0;    // distance from sensor to the EMPTY bin bottom
 const float FULL_DIST_CM   = 5.0;     // distance from sensor when the bin is 100% full
@@ -166,13 +166,10 @@ uint32_t nowSec() {
 }
 
 void setNeon(bool on) {
-  if (NEON_ACTIVE_HIGH) {
-    digitalWrite(NEON_PIN, on ? HIGH : LOW);
-  } else {
-    // Open-drain: LOW pulls the relay input to GND (relay ON). HIGH only RELEASES the pin, so the relay
-    // board's own 5V pull-up switches it fully OFF (a plain 3.3V HIGH can leave a 5V relay board half-on).
-    digitalWrite(NEON_PIN, on ? LOW : HIGH);
-  }
+  // Plain push-pull output, same as the relay test sketch that worked:
+  // active-low board -> LOW = relay ON, HIGH = relay OFF.
+  bool level = NEON_ACTIVE_HIGH ? on : !on;
+  digitalWrite(NEON_PIN, level ? HIGH : LOW);
 }
 
 float readOnce() {
@@ -352,7 +349,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
-  pinMode(NEON_PIN, NEON_ACTIVE_HIGH ? OUTPUT : OUTPUT_OPEN_DRAIN);
+  pinMode(NEON_PIN, OUTPUT);
   setNeon(false);                       // neon/relay OFF from the very start
 
   lcdInit();

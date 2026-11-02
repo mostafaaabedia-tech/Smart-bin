@@ -8,6 +8,8 @@
   - Shows fill level, a progress bar and counters on the LCD.
   - Saves every event to flash (LittleFS) as CSV, so data survives power loss.
   - Runs a small web server that the dashboard (index.html) reads from.
+  - Relay control from the dashboard or Serial Monitor: AUTO / ON / OFF / TEST.
+  - Relay self-test at power-up (ON 1 s, then OFF), like the working test sketch.
 
   WIRING (ESP32 DevKit)
     HC-SR04 VCC  -> 5V (VIN)
@@ -15,7 +17,7 @@
     HC-SR04 TRIG -> GPIO 5
     HC-SR04 ECHO -> GPIO 18  *through a voltage divider* (1k from ECHO to GPIO18,
                                                           2k from GPIO18 to GND)
-    Relay module VCC -> 5V (VIN), GND -> GND, IN -> GPIO 26, plus 10k resistor from IN to relay VCC
+    Relay module VCC -> 5V (VIN), GND -> GND, IN -> GPIO 26   (no extra resistor: same wiring as the relay test)
     Neon (through the relay) -> COM and NO (never NC)
     (MOSFET instead: Gate -> 100-220 ohm -> GPIO 26, Gate -> 10k -> GND, Source -> GND, Drain -> strip (-); set NEON_ACTIVE_HIGH = true)
     LCD I2C  VCC -> 5V (VIN)
@@ -62,6 +64,7 @@ const char* NTFY_TOPIC = "";          // e.g. "smartbin-mostafa-4821"
 //   true  = logic-level N-MOSFET (DC neon strip): GPIO HIGH = neon ON.
 //   false = active-low relay board (green LED lit = relay ON): GPIO LOW = relay ON.   <-- your relay (tested)
 const bool NEON_ACTIVE_HIGH = false;
+const bool RELAY_BOOT_TEST  = true;   // click the relay ON for 1 s at power-up, so you can see it works
 
 const float BIN_DEPTH_CM   = 40.0;    // distance from sensor to the EMPTY bin bottom
 const float FULL_DIST_CM   = 5.0;     // distance from sensor when the bin is 100% full
@@ -84,6 +87,13 @@ uint32_t itemsToday = 0, itemsTotal = 0;
 int   savedDay = -1;
 uint32_t lastItemT = 0;
 unsigned long lastSample = 0, lastWifiTry = 0, lastLcd = 0;
+
+// Relay mode: AUTO = neon follows "bin full"; ON / OFF = forced from the dashboard;
+// TEST = clicks ON/OFF every 2 s exactly like the relay test sketch.
+enum RelayMode { R_AUTO = 0, R_ON, R_OFF, R_TEST };
+RelayMode relayMode = R_AUTO;
+bool relayState = false;              // what the relay is doing right now
+const char* MODE_NAMES[] = { "auto", "on", "off", "test" };
 
 // ---------- tiny I2C LCD driver (HD44780 + PCF8574 backpack, 16x2) ----------
 uint8_t lcdAddr = 0;
@@ -165,11 +175,32 @@ uint32_t nowSec() {
   return millis() / 1000;                   // otherwise uptime (dashboard shows "uptime ...")
 }
 
-void setNeon(bool on) {
-  // Plain push-pull output, same as the relay test sketch that worked:
-  // active-low board -> LOW = relay ON, HIGH = relay OFF.
-  bool level = NEON_ACTIVE_HIGH ? on : !on;
-  digitalWrite(NEON_PIN, level ? HIGH : LOW);
+// Low-level relay write, exactly like the working test sketch:
+// active-low board -> digitalWrite(26, LOW) = relay ON, digitalWrite(26, HIGH) = relay OFF.
+void writeRelay(bool on) {
+  if (NEON_ACTIVE_HIGH) digitalWrite(NEON_PIN, on ? HIGH : LOW);
+  else                  digitalWrite(NEON_PIN, on ? LOW : HIGH);
+  if (on != relayState) Serial.println(on ? "Relay ON  (GPIO 26 LOW)" : "Relay OFF (GPIO 26 HIGH)");
+  relayState = on;
+}
+
+// Applies the current mode. Call it whenever isFull or relayMode changes.
+void updateRelay() {
+  switch (relayMode) {
+    case R_ON:   writeRelay(true);  break;
+    case R_OFF:  writeRelay(false); break;
+    case R_TEST: writeRelay((millis() / 2000) % 2 == 0); break;   // 2 s ON, 2 s OFF
+    default:     writeRelay(isFull); break;                       // AUTO
+  }
+}
+
+void setNeon(bool on) { (void)on; updateRelay(); }   // the bin logic sets isFull first
+
+void setRelayMode(RelayMode m) {
+  relayMode = m;
+  prefs.putUChar("rmode", (uint8_t)(m == R_TEST ? R_AUTO : m));   // TEST is never remembered
+  Serial.printf("Relay mode: %s\n", MODE_NAMES[m]);
+  updateRelay();
 }
 
 float readOnce() {
@@ -290,7 +321,8 @@ void handleStatus() {
   j += ",\"distance\":" + String(lastDist, 1);
   j += ",\"fill\":" + String(fillPct);
   j += ",\"full\":" + String(isFull ? "true" : "false");
-  j += ",\"neon\":" + String(isFull ? "true" : "false");
+  j += ",\"neon\":" + String(relayState ? "true" : "false");
+  j += ",\"relayMode\":\"" + String(MODE_NAMES[relayMode]) + "\"";
   j += ",\"today\":" + String(itemsToday);
   j += ",\"total\":" + String(itemsTotal);
   j += ",\"t\":" + String((unsigned long)nowSec());
@@ -317,6 +349,29 @@ void handleClear() {
   itemsToday = 0; itemsTotal = 0; lastItemT = 0;
   saveCounters();
   server.send(200, "application/json", "{\"ok\":true}");
+}
+
+// /api/relay?mode=auto|on|off|test
+void handleRelay() {
+  cors();
+  String m = server.arg("mode");
+  if (m == "on") setRelayMode(R_ON);
+  else if (m == "off") setRelayMode(R_OFF);
+  else if (m == "test") setRelayMode(R_TEST);
+  else if (m == "auto") setRelayMode(R_AUTO);
+  server.send(200, "application/json", String("{\"ok\":true,\"relayMode\":\"") + MODE_NAMES[relayMode] +
+              "\",\"neon\":" + (relayState ? "true" : "false") + "}");
+}
+
+// Type in Serial Monitor (115200, "Newline"): on, off, auto, test
+void handleSerial() {
+  if (!Serial.available()) return;
+  String c = Serial.readStringUntil('\n'); c.trim(); c.toLowerCase();
+  if (c == "on") setRelayMode(R_ON);
+  else if (c == "off") setRelayMode(R_OFF);
+  else if (c == "test") setRelayMode(R_TEST);
+  else if (c == "auto") setRelayMode(R_AUTO);
+  else if (c.length()) Serial.println("Commands: on, off, auto, test");
 }
 
 void handleNotFound() {
@@ -350,7 +405,7 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
   pinMode(NEON_PIN, OUTPUT);
-  setNeon(false);                       // neon/relay OFF from the very start
+  writeRelay(false);                    // relay OFF from the very start (GPIO 26 HIGH)
 
   lcdInit();
   lcdLine(0, "Smart Bin");
@@ -363,6 +418,15 @@ void setup() {
   itemsTotal = prefs.getUInt("total", 0);
   savedDay   = prefs.getInt("day", -1);
   lastItemT  = prefs.getUInt("last", 0);
+  relayMode  = (RelayMode)prefs.getUChar("rmode", R_AUTO);
+  if (relayMode > R_OFF) relayMode = R_AUTO;
+
+  if (RELAY_BOOT_TEST) {                // same as the test sketch: LOW (ON) ... HIGH (OFF)
+    lcdLine(0, "Relay test");
+    lcdLine(1, "ON for 1 second");
+    writeRelay(true);  delay(1000);
+    writeRelay(false); delay(300);
+  }
 
   connectWifi();
 
@@ -370,17 +434,23 @@ void setup() {
   server.on("/api/status", HTTP_GET, handleStatus);
   server.on("/log.csv", HTTP_GET, handleLog);
   server.on("/api/clear", HTTP_POST, handleClear);
+  server.on("/api/relay", HTTP_GET, handleRelay);
+  server.on("/api/relay", HTTP_POST, handleRelay);
   server.onNotFound(handleNotFound);
   server.begin();
 
   float d = readDistance();
   if (d > 0) { lastStable = min(d, BIN_DEPTH_CM); lastDist = lastStable; fillPct = distToPct(lastStable); }
   logEvent("boot");
+  updateRelay();
+  Serial.println("Relay: type on / off / auto / test in the Serial Monitor");
 }
 
 // ---------- main loop ----------
 void loop() {
   server.handleClient();
+  handleSerial();
+  if (relayMode == R_TEST) updateRelay();
 
   if (millis() - lastLcd > 500) { lastLcd = millis(); lcdRefresh(); }
 

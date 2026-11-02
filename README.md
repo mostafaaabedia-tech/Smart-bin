@@ -24,12 +24,7 @@ Mount the sensor on the **lid, pointing down**. Don't drive the neon straight fr
   With the bin not full the relay must be **off** and the neon dark.
 - Most cheap relay boards are **active-low** (the relay turns ON when the input is LOW, and the green LED
   on the board lights while the relay is ON). If that green LED lights at power-up, that is exactly this case.
-  The firmware is set for it: `NEON_ACTIVE_HIGH = false`. It drives GPIO 26 exactly like the relay test sketch:
-  `LOW` = relay ON, `HIGH` = relay OFF. **No extra resistor** on IN.
-- At power-up the relay clicks **ON for 1 second, then OFF** (self-test). Turn it off with `RELAY_BOOT_TEST = false`.
-- **Relay buttons** on the dashboard (under the neon): **AUTO** (on when the bin is full), **ON**, **OFF**, **TEST**
-  (2 s on, 2 s off, like the test sketch). Same from the Serial Monitor: type `on`, `off`, `auto` or `test`.
-  API: `/api/relay?mode=auto|on|off|test`.
+  The firmware is set for it: `NEON_ACTIVE_HIGH = false`. It drives the pin open-drain so the relay is fully OFF.
 - Quick test after uploading: the relay should be silent with the green LED off. Hold your hand about 5 cm in front
   of the sensor until the fill reaches 90% (3 readings) and the relay should click, green LED on, neon on.
   If it behaves the opposite way, set `NEON_ACTIVE_HIGH = true`.

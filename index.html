@@ -183,11 +183,6 @@ html[dir=rtl] .bcard{padding:12px 12px 12px 16px}
 .neonrow{display:flex;align-items:center;gap:12px;justify-content:center;margin-top:30px;font:600 12px var(--mono);color:var(--mut);letter-spacing:1px}
 .tube{width:110px;height:9px;border-radius:99px;background:var(--field);border:1px solid var(--line);transition:all .3s}
 .tube.on{background:var(--full);border-color:var(--full);box-shadow:0 0 6px var(--full),0 0 18px var(--full),0 0 40px var(--full);animation:pulse 1.4s ease-in-out infinite}
-.relayctl{display:flex;gap:6px;justify-content:center;margin-top:12px}
-.rbtn{min-width:62px;padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:var(--field);color:var(--mut);font:600 12px var(--mono);letter-spacing:.5px;cursor:pointer;transition:all .2s}
-.rbtn:hover{color:var(--txt,inherit);border-color:var(--mut)}
-.rbtn.on{color:#000;background:var(--full);border-color:var(--full);box-shadow:0 0 10px var(--full)}
-.rbtn:disabled{opacity:.5;cursor:wait}
 .democtl{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
 .democtl .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 .democtl p{margin:10px 0 0;font-size:12px;color:var(--mut)}
@@ -461,12 +456,6 @@ body.kiosk .headline{font-size:clamp(40px,6vw,72px)}
       <div class="pctrow rel"><div class="pctbig"><span id="pct">0</span><small>%</small></div></div>
       <div class="segwrap rel"><div class="seg" id="seg"></div><div class="mk" id="mkWarn"><span id="mkWarnT"></span></div><div class="mk full" id="mkFull" style="left:90%"><span>90</span></div></div>
       <div class="neonrow rel"><span data-i18n="neon">NEON</span><div class="tube" id="tube"></div><b id="neonTxt">OFF</b></div>
-      <div class="relayctl rel noprint" id="relayCtl" role="group" aria-label="Relay">
-        <button class="rbtn" data-rmode="auto" data-i18n="rAuto">Auto</button>
-        <button class="rbtn" data-rmode="on" data-i18n="rOn">On</button>
-        <button class="rbtn" data-rmode="off" data-i18n="rOff">Off</button>
-        <button class="rbtn" data-rmode="test" data-i18n="rTest">Test</button>
-      </div>
       <div class="democtl rel noprint" id="demoCtl" hidden>
         <div class="row">
           <button class="btn" id="dThrow"><span data-i18n="dThrow">Throw item</span></button>
@@ -633,7 +622,7 @@ en:{
   testMixed:'This page is https and browsers block http devices. Open the dashboard from your computer or from the ESP32 itself.',
   remove:'Remove',cancel:'Cancel',confirmRemove:'Remove this bin from the dashboard?',needName:'Give the bin a name.',addBin:'Add bin',
   demoBadge:'DEMO',demoNote:'Demo data — add your ESP32 to see your real bin.',dThrow:'Throw item',dFill:'Fill to 90%',dEmpty:'Empty bin',dPause:'Pause',dPlay:'Resume',
-  neon:'NEON',on:'ON',offTxt:'OFF',rAuto:'AUTO',rOn:'ON',rOff:'OFF',rTest:'TEST',rFail:'Could not reach the bin.',rSent:'Relay: {0}',connected:'Connected to {0}.',cleared:'Data cleared.',saved:'Saved.',bins:'bins'
+  neon:'NEON',on:'ON',offTxt:'OFF',connected:'Connected to {0}.',cleared:'Data cleared.',saved:'Saved.',bins:'bins'
 },
 fa:{
   u:{s:' ثانیه',m:' دقیقه',h:' ساعت',d:' روز'},
@@ -664,7 +653,7 @@ fa:{
   testMixed:'این صفحه با https باز شده و مرورگرها دستگاه‌های http را مسدود می‌کنند. داشبورد را از کامپیوتر یا از خود ESP32 باز کنید.',
   remove:'حذف',cancel:'انصراف',confirmRemove:'این سطل از داشبورد حذف شود؟',needName:'برای سطل یک نام بنویسید.',addBin:'افزودن سطل',
   demoBadge:'نمایشی',demoNote:'داده‌های نمایشی — برای دیدن سطل واقعی، ESP32 خود را اضافه کنید.',dThrow:'انداختن زباله',dFill:'پُر کردن تا 90%',dEmpty:'خالی کردن',dPause:'توقف',dPlay:'ادامه',
-  neon:'نئون',on:'روشن',offTxt:'خاموش',rAuto:'خودکار',rOn:'روشن',rOff:'خاموش',rTest:'آزمایش',rFail:'به سطل وصل نشد.',rSent:'رله: {0}',connected:'به {0} متصل شد.',cleared:'داده‌ها پاک شد.',saved:'ذخیره شد.',bins:'سطل'
+  neon:'نئون',on:'روشن',offTxt:'خاموش',connected:'به {0} متصل شد.',cleared:'داده‌ها پاک شد.',saved:'ذخیره شد.',bins:'سطل'
 }};
 let lang=store.get('binLang')||((navigator.language||'').toLowerCase().startsWith('fa')?'fa':'en');
 if(!I18N[lang])lang='en';
@@ -748,8 +737,7 @@ function demoStatus(id){
   const b=DEMO_BINS.find(x=>x.id===id),d=demoState(id),now=Date.now();
   let n=Math.min(3,Math.floor((now-d.lastStep)/2000));
   if(n>0){for(let i=0;i<n;i++)demoStep(b,d);d.lastStep=now;}
-  const rm=d.rmode||'auto',nn=rm==='on'?true:rm==='off'?false:rm==='test'?Math.floor(now/2000)%2===0:d.full;
-  return {ok:true,relayMode:rm,distance:dd(d.fill,d.depth),fill:Math.round(d.fill),full:d.full,neon:nn,today:d.today,total:d.total,t:Math.floor(now/1000),depth:d.depth,last:d.last||0,name:b.name,lat:b.lat||0,lng:b.lng||0};
+  return {ok:true,distance:dd(d.fill,d.depth),fill:Math.round(d.fill),full:d.full,neon:d.full,today:d.today,total:d.total,t:Math.floor(now/1000),depth:d.depth,last:d.last||0,name:b.name,lat:b.lat||0,lng:b.lng||0};
 }
 const demoCsv=id=>demoState(id).ev.map(e=>e.join(',')).join('\n');
 function demoAct(a){
@@ -760,17 +748,6 @@ function demoAct(a){
   else if(a==='pause'){d.paused=!d.paused;renderDemoCtl();return;}
   pollOne(b);loadLog(b);
 }
-
-/* ---------------------------- relay ---------------------------- */
-async function setRelay(mode){
-  const b=cur(),btns=document.querySelectorAll('[data-rmode]');
-  if(b.demo){const d=demoState(b.id);d.rmode=mode;pollOne(b);return;}
-  btns.forEach(x=>x.disabled=true);
-  try{await fetchText(b,'/api/relay?mode='+mode,4000);await pollOne(b);}
-  catch(e){if(typeof toast==='function')toast(tr('rFail'));}
-  finally{btns.forEach(x=>x.disabled=false);}
-}
-document.addEventListener('click',e=>{const x=e.target.closest&&e.target.closest('[data-rmode]');if(x)setRelay(x.dataset.rmode);});
 
 /* ---------------------------- network ---------------------------- */
 async function fetchText(b,path,ms){
@@ -910,8 +887,6 @@ function render(){
   renderSeg(S?S.fill:0);
   const neon=!!(S&&S.neon&&r.ok);
   $('tube').className='tube'+(neon?' on':'');$('neonTxt').textContent=neon?tr('on'):tr('offTxt');
-  const rm=b.demo?(demoState(b.id).rmode||'auto'):(S&&S.relayMode)||'auto';
-  document.querySelectorAll('[data-rmode]').forEach(x=>{x.classList.toggle('on',x.dataset.rmode===rm);x.disabled=!b.demo&&!r.ok;});
   renderBin(S,st);
   renderConn();
   renderKpis();
